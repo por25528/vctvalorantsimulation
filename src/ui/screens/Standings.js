@@ -195,7 +195,7 @@ function placementsSection(state, eventId, followedId, goTeam) {
       'div',
       { class: 'standings__placements' },
       h('h2', { class: 'standings__group-title' }, 'Final Placements'),
-      h('p', { class: 'screen__empty' }, 'Final placements appear once the event is fully played.')
+      h('p', { class: 'screen__empty screen__empty--inline' }, 'Final placements appear once the event is fully played.')
     );
   }
 

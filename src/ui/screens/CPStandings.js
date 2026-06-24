@@ -34,6 +34,13 @@ import { REGION_ORDER } from '../../engine/career/qualification.js';
 /** The screen id (route key) the router maps to this screen. */
 export const id = 'cp';
 
+/**
+ * How many teams the cumulative CP race sends to Champions. Used purely to draw
+ * the "qualification cut" line in the standings — the engine owns the real
+ * qualification, this is a readability cue only.
+ */
+export const CHAMPIONS_SLOTS = 15;
+
 /** Region filter options: 'all' plus the four leagues in fixed order. */
 const REGION_FILTERS = ['all', ...REGION_ORDER];
 
@@ -114,6 +121,13 @@ export function CPStandingsScreen(state, dispatch) {
 
   const columns = buildColumns();
 
+  // The qualification "cut" line: only meaningful in the unfiltered, CP-desc view
+  // (a region filter or asc sort would put it in a misleading place). When shown,
+  // the team sitting on the last Champions slot gets a marker class so the table
+  // can draw a divider beneath it.
+  const showCut =
+    region === 'all' && sortDir === 'desc' && rows.length > CHAMPIONS_SLOTS;
+
   return h(
     'section',
     { class: 'screen screen--cp', 'data-screen': 'cp' },
@@ -121,10 +135,22 @@ export function CPStandingsScreen(state, dispatch) {
     h(
       'p',
       { class: 'screen__subtitle' },
-      'The season-long race — cumulative Championship Points decide the 15 ' +
+      `The season-long race — cumulative Championship Points decide the ${CHAMPIONS_SLOTS} ` +
         'cumulative Champions slots.'
     ),
-    regionFilterBar(region, sortDir, dispatch),
+    h(
+      'div',
+      { class: 'cp__toolbar row row--wrap' },
+      regionFilterBar(region, sortDir, dispatch),
+      showCut
+        ? h(
+            'span',
+            { class: 'cp__cut-legend' },
+            h('span', { class: 'cp__cut-swatch', 'aria-hidden': 'true' }),
+            `Champions cut — top ${CHAMPIONS_SLOTS}`
+          )
+        : null
+    ),
     DataTable({
       columns,
       rows,
@@ -133,7 +159,12 @@ export function CPStandingsScreen(state, dispatch) {
       onSort,
       onRow,
       rowKey: (row) => row.teamId,
-      rowClass: (row) => (row.teamId === followedId ? 'table__row--me' : null),
+      rowClass: (row) =>
+        classNames(
+          row.teamId === followedId && 'table__row--me',
+          showCut && row.rank === CHAMPIONS_SLOTS && 'cp-standings__cut',
+          showCut && row.rank <= CHAMPIONS_SLOTS && 'cp-standings__in'
+        ) || null,
       class: 'cp-standings'
     })
   );

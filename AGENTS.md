@@ -61,3 +61,22 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   `tests/unit/{transfers,contracts}.test.mjs`; talent-pool invariants in
   `tests/unit/talent-pool.test.mjs`. Prefer outcome (multi-season invariant) assertions
   over pinning exact champions/rosters — there is no golden-master career fixture.
+
+## UI layer (`src/ui/` + `styles/`)
+
+- Vanilla ES modules, zero deps. Screens/components are pure `(state, dispatch, store) => VNode`
+  built with the hyperscript `h` from `src/ui/render.js`; they read game truth ONLY through
+  selectors and never touch `document`/`window`. The same tree serializes via `toHtml` so every
+  screen is testable headlessly — that is how `tests/ui/*.test.mjs` work (assert on the HTML string).
+- `h(tag, props, ...children)` flattens nested arrays in children, so `cond ? [Icon(...), ' text'] : x`
+  is a valid single child.
+- **Icons, not emoji.** Chrome/marker glyphs use the inline-SVG set in `components/Icon.js`
+  (`Icon(name, { size, class })`) — monochrome `currentColor`, `aria-hidden`, sits beside a real
+  text label. Emoji render as tofu (□) in headless/Linux and look incoherent, so don't add them to
+  shell/markers; the colourful trophy cabinet (`screens/Team.js`) is the one intentional exception.
+- Design tokens live in `styles/theme.css` (`--sp-*`, `--fs-*`, colours, `--ring`); `styles/main.css`
+  consumes them. Keyboard focus uses `box-shadow: var(--ring)` on `:focus-visible` — prefer that token
+  over bespoke outlines. Engine/domain layers never emit class names; only `src/ui/**` + `src/main.js` do.
+- Run the app over HTTP (`npm start` → http://localhost:8000); ES modules won't load from `file://`.
+- Full `node tests/run.mjs` also runs the slow engine/season suites; for quick UI iteration import a
+  single `tests/ui/*.test.mjs`'s default export and call it.

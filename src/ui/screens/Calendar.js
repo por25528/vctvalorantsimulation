@@ -24,6 +24,7 @@
  */
 
 import { h, classNames } from '../render.js';
+import { Icon } from '../components/Icon.js';
 import { navigate } from '../../state/actions.js';
 import { openEvent } from '../../state/commands.js';
 import {
@@ -215,7 +216,7 @@ function eventRow(state, slot, region, entry, goEvent) {
           ? h(
               'span',
               { class: 'calendar__event-champ' },
-              h('span', { class: 'calendar__event-trophy' }, '🏆'),
+              Icon('trophy', { size: 13, class: 'calendar__event-trophy' }),
               winnerName || '—'
             )
           : h('span', { class: 'card__muted' }, '—')

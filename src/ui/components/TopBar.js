@@ -9,6 +9,7 @@
 
 import { h, classNames } from '../render.js';
 import { ContinueButton } from './ContinueButton.js';
+import { Icon } from './Icon.js';
 
 /**
  * @param {object} props
@@ -80,7 +81,8 @@ export function TopBar(props) {
                 : 'Spoilers shown — results appear immediately. Click for spoiler-free viewing.',
               onClick: () => onToggleSpoilerFree()
             },
-            spoilerFree ? '🙈 Spoiler-free' : '👁 Spoilers'
+            Icon(spoilerFree ? 'eye-off' : 'eye', { size: 16 }),
+            h('span', { class: 'topbar__btn-label' }, spoilerFree ? 'Spoiler-free' : 'Spoilers')
           )
         : null,
       // Hands-free autoplay: auto-advance the season match-day by match-day.
@@ -94,7 +96,8 @@ export function TopBar(props) {
               title: autoplay ? 'Pause autoplay' : 'Autoplay — sit back and watch',
               onClick: () => onToggleAutoplay()
             },
-            autoplay ? '⏸ Auto' : '▶ Auto'
+            Icon(autoplay ? 'pause' : 'play', { size: 16 }),
+            h('span', { class: 'topbar__btn-label' }, 'Auto')
           )
         : null,
       // Autoplay cadence (only meaningful while autoplay runs).
@@ -109,7 +112,8 @@ export function TopBar(props) {
               title: 'Reveal the rest of this event at once',
               onClick: () => onSimEvent()
             },
-            '⏭ Sim event'
+            Icon('skip', { size: 16 }),
+            h('span', { class: 'topbar__btn-label' }, 'Sim event')
           )
         : null,
       ContinueButton({ complete: kickoffComplete, onContinue, label: continueLabel })

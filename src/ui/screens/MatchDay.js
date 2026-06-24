@@ -11,6 +11,7 @@
  */
 
 import { h, classNames } from '../render.js';
+import { Icon } from '../components/Icon.js';
 import { openSeries, continueSeason } from '../../state/commands.js';
 import {
   selectCurrentMatchDay,
@@ -112,13 +113,13 @@ export function MatchDayScreen(state, dispatch, store) {
         'div',
         { class: 'matchday__actions row' },
         !isLastDay
-          ? h('button', { type: 'button', class: 'btn btn--ghost', onClick: onSim }, '⏭ Sim event')
+          ? h('button', { type: 'button', class: 'btn btn--ghost', onClick: onSim }, Icon('skip', { size: 16 }), h('span', null, 'Sim event'))
           : null,
         h('button', { type: 'button', class: 'btn btn--primary', onClick: onContinue }, isLastDay ? 'Continue' : 'Advance day')
       )
     ),
     spoilerFree
-      ? h('p', { class: 'matchday__hint muted' }, '🙈 Spoiler-free — scores are hidden. Click a fixture to watch it play out live.')
+      ? h('p', { class: 'matchday__hint muted' }, Icon('eye-off', { size: 15, class: 'matchday__hint-icon' }), h('span', null, 'Spoiler-free — scores are hidden. Click a fixture to watch it play out live.'))
       : null,
     order.map((key) =>
       regionGroup(key, groups.get(key), slotId, followedId, onOpen, spoilerFree)
@@ -152,7 +153,7 @@ function gameRow(g, followedId, onOpen, spoilerFree) {
   // Spoiler-free: never reveal the winner via emphasis, and swap the score for a
   // "watch" prompt. Otherwise show the final scoreline with the winner emphasised.
   const scoreCell = spoilerFree
-    ? h('span', { class: 'matchday__game-score matchday__game-score--hidden' }, h('span', { class: 'matchday__watch' }, '▶ Watch'))
+    ? h('span', { class: 'matchday__game-score matchday__game-score--hidden' }, h('span', { class: 'matchday__watch' }, Icon('play', { size: 13 }), h('span', null, 'Watch')))
     : h(
         'span',
         { class: 'matchday__game-score' },
