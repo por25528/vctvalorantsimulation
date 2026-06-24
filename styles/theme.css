@@ -1,0 +1,144 @@
+/* ============================================================================
+ * styles/theme.css — DESIGN TOKENS (Phase 3 UI shell)
+ * ----------------------------------------------------------------------------
+ * Per CONTRACTS-UI §7. CSS custom-property tokens for a dark esports aesthetic
+ * with a Valorant-red accent. Imported (linked) BEFORE main.css so main.css
+ * consumes these vars. No preprocessor — plain CSS. Engine/domain layers never
+ * touch CSS; only src/ui/** + src/main.js emit the class names main.css styles.
+ *
+ * Token groups:
+ *   surfaces  — --bg, --panel, --panel-2, --panel-3, --border, --border-soft
+ *   text      — --text, --muted, --faint
+ *   accent    — --accent (Valorant red ~#ff4655) + hover/soft/contrast
+ *   teams     — --teamA / --teamB (distinct) + soft fills
+ *   sides     — --atk (attack), --def (defense) + soft fills
+ *   econ      — glyph colors per buy type: pistol/eco/force/full
+ *   result    — --win / --loss + soft fills
+ *   qual/cp   — qualification + championship-point badge colors
+ *   space     — --sp-1 .. --sp-6 spacing scale
+ *   radius    — --r-1 .. --r-3 + --r-pill
+ *   type      — --fs-* type scale + font families + weights
+ *   misc      — shadows, z-index layers, transitions
+ * ========================================================================== */
+
+:root {
+  /* ---- surfaces (dark, layered) ---------------------------------------- */
+  --bg:          #0b0c10;   /* app background (deepest) */
+  --panel:       #14161d;   /* primary panel surface */
+  --panel-2:     #1b1e27;   /* raised panel / table header / cards */
+  --panel-3:     #232733;   /* hover / selected row / inset */
+  --border:      #2a2e3a;   /* default 1px divider */
+  --border-soft: #20232d;   /* subtle internal divider */
+  --inset:       #0e1015;   /* sunken wells (ticker track, code) */
+
+  /* ---- text ------------------------------------------------------------ */
+  --text:   #e8eaf0;        /* primary copy */
+  --muted:  #9aa0b0;        /* secondary copy / labels */
+  --faint:  #626878;        /* tertiary / disabled / captions */
+
+  /* ---- accent (Valorant red) ------------------------------------------- */
+  --accent:          #ff4655;
+  --accent-hover:    #ff5e6b;
+  --accent-active:   #e23644;
+  --accent-soft:     rgba(255, 70, 85, 0.14);   /* tint fills / focus ring */
+  --accent-line:     rgba(255, 70, 85, 0.40);
+  --accent-contrast: #ffffff;                    /* text on accent */
+
+  /* ---- team colors (distinct A vs B) ----------------------------------- */
+  --teamA:      #3da9fc;     /* cool blue */
+  --teamA-soft: rgba(61, 169, 252, 0.16);
+  --teamB:      #ffb454;     /* warm amber */
+  --teamB-soft: rgba(255, 180, 84, 0.16);
+
+  /* ---- side colors (atk / def) ----------------------------------------- */
+  --atk:      #ff6f59;       /* attack = warm red-orange */
+  --atk-soft: rgba(255, 111, 89, 0.18);
+  --def:      #45c4b0;       /* defense = teal */
+  --def-soft: rgba(69, 196, 176, 0.18);
+
+  /* ---- economy glyph colors -------------------------------------------- */
+  --econ-pistol: #c9d1e0;    /* pistol round (neutral light) */
+  --econ-eco:    #8a93a6;    /* eco / save (grey) */
+  --econ-force:  #ffd166;    /* force buy (yellow) */
+  --econ-full:   #4ade80;    /* full buy (green) */
+
+  /* ---- result ---------------------------------------------------------- */
+  --win:       #4ade80;
+  --win-soft:  rgba(74, 222, 128, 0.16);
+  --loss:      #f87171;
+  --loss-soft: rgba(248, 113, 113, 0.16);
+  --draw:      #9aa0b0;
+
+  /* ---- qualification / championship-point badges ----------------------- */
+  --qual:        #4ade80;    /* qualified (advances) */
+  --qual-soft:   rgba(74, 222, 128, 0.16);
+  --elim:        #f87171;    /* eliminated */
+  --elim-soft:   rgba(248, 113, 113, 0.14);
+  --cp:          #ffd166;    /* championship points */
+  --cp-soft:     rgba(255, 209, 102, 0.16);
+  --mvp:         #ffd166;    /* MVP highlight (gold) */
+  --mvp-soft:    rgba(255, 209, 102, 0.12);
+
+  /* ---- spacing scale --------------------------------------------------- */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* ---- radius ---------------------------------------------------------- */
+  --r-1: 4px;
+  --r-2: 8px;
+  --r-3: 12px;
+  --r-pill: 999px;
+
+  /* ---- type scale ------------------------------------------------------ */
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+
+  --fs-xs:  11px;   /* captions, ticker score, table micro */
+  --fs-sm:  13px;   /* table body, secondary */
+  --fs-md:  15px;   /* base copy */
+  --fs-lg:  18px;   /* card titles */
+  --fs-xl:  24px;   /* screen headings */
+  --fs-2xl: 34px;   /* hero / big score */
+
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+
+  --lh-tight: 1.2;
+  --lh-base:  1.5;
+
+  /* ---- elevation / shadow ---------------------------------------------- */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.55);
+  --ring: 0 0 0 2px var(--accent-soft);
+
+  /* ---- layout sizing --------------------------------------------------- */
+  --sidebar-w: 220px;
+  --topbar-h:  56px;
+
+  /* ---- motion ---------------------------------------------------------- */
+  --t-fast: 110ms ease;
+  --t-base: 180ms ease;
+
+  /* ---- z-index layers -------------------------------------------------- */
+  --z-topbar:  100;
+  --z-sidebar: 90;
+  --z-modal:   1000;
+  --z-toast:   1100;
+
+  /* ------------------------------------------------------------------ */
+  /* Back-compat aliases for any Phase-1 placeholder rules still around. */
+  --color-bg: var(--bg);
+  --color-fg: var(--text);
+  --color-accent: var(--accent);
+  --color-panel: var(--panel);
+  --color-border: var(--border);
+  --color-win: var(--win);
+  --color-loss: var(--loss);
+}

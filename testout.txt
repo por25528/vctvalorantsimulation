@@ -1,0 +1,212 @@
+
+=== determinism — same (season, world) => identical awards ===
+
+=== MVP — top qualified mean-ACS, meets the min-maps gate ===
+
+=== MIN_MAPS gate — every winner qualified ===
+
+=== All-Pro — sizes, disjoint, rating-ordered, MVP heads First Team ===
+
+=== Rookie of the Year — respects ROOKIE_MAX_AGE ===
+
+=== Finals MVP — drawn from the Champions event ===
+
+=== Regional MVPs — each from its own region ===
+
+=== empty / null safety ===
+PASS unit/awards.test.mjs
+
+=== engine/match/boxScore ===
+PASS unit/boxScore.test.mjs
+
+=== engine/format/bracket ===
+PASS unit/bracket.test.mjs
+
+=== calendar / shape ===
+
+=== calendar / composition counts ===
+
+=== calendar / immutability ===
+PASS unit/calendar.test.mjs
+
+=== engine/career championshipPoints + qualification ===
+PASS unit/championshipPoints.test.mjs
+
+=== composition.selectComp — 5 distinct agents, >=1 Controller ===
+
+=== composition.selectComp — deterministic for a fixed seed ===
+
+=== composition.selectComp — agent proficiency is honored ===
+
+=== composition.selectComp — terse / sparse inputs do not throw ===
+PASS unit/composition.test.mjs
+
+=== config: BALANCE ===
+
+=== config: MAPS ===
+
+=== config: AGENTS ===
+
+=== config: CP_TABLE ===
+PASS unit/config.test.mjs
+
+=== resolveContract — deterministic for a given seed ===
+
+=== resolveContract — renewal shape (active) vs release shape (free agent) ===
+
+=== resolveContract — happy stars re-sign more than unhappy fringe players ===
+
+=== resolveContract — salary scales with overall ===
+PASS unit/contracts.test.mjs
+
+=== engine/career CP ledger ===
+PASS unit/cpLedger.test.mjs
+
+=== developPlayer — deterministic (same player + seed → identical) ===
+
+=== developPlayer — young high-potential players grow on average ===
+
+=== developPlayer — aging veterans decline, physical faster than mental ===
+
+=== developPlayer — attributes stay within [0,100] ===
+PASS unit/development.test.mjs
+
+=== domain.createPlayer — terse construction ===
+
+=== domain.createPlayer — out-of-range attributes clamp ===
+
+=== domain.createPlayer — unknown role falls back, immutability ===
+
+=== domain.createTeam — defaults filled ===
+
+=== domain.createLeague — defaults filled ===
+
+=== domain.createEvent — stub fully-formed ===
+PASS unit/domain.test.mjs
+
+=== duel.duelRating — weighted base & purity ===
+
+=== duel.resolveDuel — equal players are a coin flip ===
+
+=== duel.resolveDuel — clearly higher-rated player wins >60% ===
+
+=== duel.duelRating — clutch modifier shifts win rate correctly ===
+
+=== duel.duelRating — econ modifier shifts win rate correctly ===
+
+=== duel.duelRating — pistol dampener compresses the spread ===
+
+=== duel.duelRating — map/agent proficiency shifts rating ===
+
+=== duel.duelRating — robust to malformed input (no NaN) ===
+PASS unit/duel.test.mjs
+
+=== updateDynamics — a strong win lifts form & morale, maps add fatigue ===
+
+=== updateDynamics — a heavy loss drops form & morale ===
+
+=== updateDynamics — deterministic (pure) + clamped to domain ranges ===
+
+=== recoverBetweenEvents — sheds fatigue, mean-reverts form, reverts morale ===
+PASS unit/dynamics.test.mjs
+
+=== engine/match/economy ===
+PASS unit/economy.test.mjs
+PASS unit/format-champions.test.mjs
+PASS unit/format-masters.test.mjs
+PASS unit/format-stage.test.mjs
+
+=== engine/format/formatEngine ===
+PASS unit/formatEngine.test.mjs
+
+=== core/hash ===
+PASS unit/hash.test.mjs
+
+=== tickInjury — heals one slot at a time, clears at 0 ===
+
+=== injuryChance — scales with fatigue / maps / age, clamped ===
+
+=== rollInjury — deterministic, valid shape, gated by chance ===
+
+=== injuredFatigue — never below the floor, clamped to 100 ===
+
+=== injuryNews — generator items ===
+
+=== career integration — injuries occur, deterministic, roster-safe, heal in the off-season ===
+
+=== regression — different seed yields a different injury pattern ===
+PASS unit/injuries.test.mjs
+
+=== engine/match/mapSim ===
+PASS unit/mapSim.test.mjs
+
+=== engine/match/matchSim ===
+PASS unit/matchSim.test.mjs
+
+=== generateNewgens — count, shape, and free-agent status ===
+
+=== generateNewgens — ids are globally unique within the batch ===
+
+=== generateNewgens — deterministic (same count+seed+opts → identical batch) ===
+
+=== generateNewgens — raw talent: current overall sits below potential ===
+
+=== generateNewgens — empty/zero counts are safe ===
+PASS unit/newgen.test.mjs
+
+=== eventNews — winner headlines, champions special-case, followed result ===
+
+=== eventNews — determinism ===
+
+=== awardNews — MVP / Finals / Rookie ===
+
+=== offseasonNews — retirements, signings, newgens (bounded) ===
+
+=== inbox slice — append stamps id + unread, newest at end ===
+
+=== inbox slice — markRead (one / all) ===
+
+=== inbox slice — cap to INBOX_CAP, load derives seq ===
+PASS unit/news.test.mjs
+
+=== runOffseason — every roster stays valid (exactly MIN_ROSTER) ===
+
+=== runOffseason — no player is on two rosters; rostered ⇒ active & owned ===
+
+=== runOffseason — everyone aged exactly one year; retired are off the rosters ===
+
+=== runOffseason — report shape + newgens entered the world ===
+
+=== runOffseason — input world is not mutated ===
+
+=== runOffseason — deterministic for a given seed ===
+
+=== runOffseason — totals balance (rosters conserved at MIN×teams) ===
+PASS unit/offseason.test.mjs
+PASS unit/persistence.test.mjs
+
+=== core/produce ===
+PASS unit/produce.test.mjs
+
+=== decideRetirement — youth never retire, the ancient always do ===
+
+=== decideRetirement — deterministic for a given seed ===
+
+=== decideRetirement — hazard rises with age ===
+
+=== decideRetirement — a faded, demoralized vet retires more than a happy star ===
+PASS unit/retirement.test.mjs
+
+=== core/rng ===
+PASS unit/rng.test.mjs
+
+=== engine/format/roundRobin ===
+PASS unit/roundRobin.test.mjs
+
+=== engine/match/roundSim ===
+PASS unit/roundSim.test.mjs
+
+=== engine/career season qualification ===
+PASS unit/seasonQualification.test.mjs
+
+=== seasonStep — steppable season API == simSeason; hydrate is deterministic ===

@@ -1,0 +1,11 @@
+{
+  "name": "vct2026-sim",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "node tests/run.mjs"
+  }
+}

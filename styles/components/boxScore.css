@@ -1,0 +1,4 @@
+/* styles/components/boxScore.css — BoxScore styles now live in styles/main.css
+ * under the `.boxscore*` class contract (see main.css top comment). This file
+ * is intentionally empty to avoid a second source of truth. Kept for the
+ * scaffold path; not linked separately. */
