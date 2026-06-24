@@ -151,13 +151,26 @@ export const BALANCE = deepFreeze({
     NEWGEN: {
       AGE_MIN: 16,
       AGE_MAX: 19,
-      POT_MEAN: 70,
-      POT_STD: 9,
-      POT_MIN: 45,
-      POT_MAX: 95,
-      HEADROOM_MIN: 12, // current overall sits this far below potential …
-      HEADROOM_MAX: 28, // … up to this far (a raw 16-yo)
+      // Prospect potential is a gaussian → a believable talent pyramid: most
+      // intake is journeyman/role-player grade, a solid-pro middle, and a thin
+      // elite tail (wonderkids lift the ceiling further, below). MEAN/MAX are
+      // calibrated against the SEED world (T1 overall ≈ 79, ceiling ≈ 85) so the
+      // best newgens REFILL the T1 pool without deflating its average or
+      // inflating its ceiling into 95-overall gods. See scripts/probe-newgen.mjs.
+      POT_MEAN: 74,
+      POT_STD: 8.5,
+      POT_MIN: 48,
+      POT_MAX: 90,
+      HEADROOM_MIN: 8, // current overall sits this far below potential …
+      HEADROOM_MAX: 20, // … up to this far (a raw 16-yo). Prospects who reach the
+      // T1 free-agent pool are talented-but-unfinished, not total amateurs, so the
+      // gap is moderate — enough for a visible growth arc without rosters filling
+      // with overall-50 raws that crater the league average.
       ATTR_NOISE: 4, // per-attribute gaussian spread around the base
+      // Per-role share of the intake (weights, normalized). Matches realistic VCT
+      // team composition (duelist/initiator slightly more common than the
+      // dedicated controller/sentinel) so rosters never drift into a role drought.
+      ROLE_WEIGHTS: { Duelist: 0.29, Initiator: 0.28, Controller: 0.22, Sentinel: 0.21 },
       // P12.1 — peak/decline draw bands (pushed later than the old 23-25 / 27-29)
       PEAK_AGE_MIN: 24, PEAK_AGE_SPAN: 4, // peakAge = 24..27
       DECLINE_AGE_MIN: 28, DECLINE_AGE_SPAN: 4, // declineAge = 28..31
@@ -167,7 +180,7 @@ export const BALANCE = deepFreeze({
       WONDERKID_PROB: 0.06, // rare, fast-rising & high-ceiling
       BUST_PROB: 0.12, // never reach their hype
       LATEBLOOMER_PROB: 0.12, // slow start, long late-career arc
-      WONDERKID_POT_BOOST: 6 // wonderkids carry a higher potential ceiling
+      WONDERKID_POT_BOOST: 4 // wonderkids carry a higher potential ceiling (kept modest so the elite tail stays believable, not 95-overall gods)
     },
     // ---- contracts (offseason/contracts.js) ----
     CONTRACT: {
@@ -193,7 +206,7 @@ export const BALANCE = deepFreeze({
       MIN_ROSTER: 5, // teams are kept filled to at least this many players
       MAX_ROSTER: 7, // the user (P6d transfer market) may carry this many — first 5 start, the rest bench
       USER_SIGN_LENGTH: 3, // seasons on a user-brokered signing / extension (deterministic; no rng in the UI layer)
-      NEWGEN_PER_OFFSEASON: 22, // base youth intake each off-season (P12.1: more rookies)
+      NEWGEN_PER_OFFSEASON: 26, // base youth intake each off-season (sized so the best rookies + a deepening FA pool refill T1 turnover without deflation)
       NEWGEN_BUFFER: 8, // extra newgens minted beyond known holes (spare prospects)
       VALUE_POT_WEIGHT: 0.5, // player market value = overall + this*max(0, potential-overall)
       SIGN_WEIGHT_POW: 3, // weightedPick exponent on value^pow (better FAs usually win the bid)
