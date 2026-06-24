@@ -102,6 +102,8 @@ export function createEmitter() // -> { on(type, fn)->unsub, off, emit(type, pay
  *   contract:{ teamId:string|null, salary:number, expires:number, status:'active'|'free_agent'|'retired' }
  * } */
 export function createPlayer(partial)  // fills sane defaults; clamps attributes 0-100; dynamics default {form:0,morale:60,fatigue:0}
+//   potential: explicit value honoured verbatim; when omitted, derived from current overall + an age-decreasing headroom (never below overall, so seed players don't start in decline)
+export function roleProfile(role)      // -> Attributes: the role's reference "shape" (slants over ATTR_BASELINE), a fresh mutable copy; generators use it to give a role identity
 
 /** @typedef Team { id, name, tag, leagueId, roster:string[]/*5+*/, reputation:number, budget:number, championshipPoints:number } */
 export function createTeam(partial)

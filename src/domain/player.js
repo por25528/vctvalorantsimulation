@@ -90,6 +90,18 @@ const DOMAIN = Object.freeze({
   DEFAULT_AGE: 21,
   DEFAULT_POTENTIAL: 75,
 
+  // When `potential` is omitted, derive a ceiling from the player's current
+  // overall plus an age-decreasing headroom: a youngster has room to grow, a
+  // veteran is at (or near) their ceiling. This keeps authored/seed players —
+  // which rarely specify potential — from sitting BELOW their current overall
+  // (which would make even a 21-yo decline). Pure: derived from attributes+age,
+  // no randomness. Generated youth (newgen) always pass an explicit potential,
+  // so this only governs hand-authored data.
+  POTENTIAL_REF_AGE: 24, // headroom runs out by this age (a player's prime onset)
+  POTENTIAL_HEADROOM_PER_YEAR: 1.4, // extra ceiling per year a player is below REF_AGE
+  POTENTIAL_HEADROOM_MAX: 12, // cap the derived headroom (no teenage 99-ceilings from this path)
+  POTENTIAL_MAX: 99,
+
   // P12 — competitive tier; defaults to the franchised top flight.
   TIERS: Object.freeze(['t1', 't2', 'prospect']),
   DEFAULT_TIER: 't1',
@@ -143,6 +155,26 @@ function normalizeRole(role) {
 }
 
 /**
+ * The full 9-attribute reference profile for a role: the role's slants overlaid
+ * on ATTR_BASELINE for any unslanted attribute. This is the canonical "shape" of
+ * a role (a Duelist is aim-heavy/igl-light); generators use it to give produced
+ * players a believable role identity instead of a flat stat line. Pure; the
+ * returned object is a fresh, mutable copy. Unknown roles fall back to the
+ * default role's profile.
+ * @param {Role} role
+ * @returns {Attributes}
+ */
+export function roleProfile(role) {
+  const roleAttrs = DOMAIN.ROLE_ATTRS[normalizeRole(role)] || {};
+  /** @type {Attributes} */
+  const out = /** @type {Attributes} */ ({});
+  for (const key of ATTRIBUTE_KEYS) {
+    out[key] = key in roleAttrs ? roleAttrs[key] : DOMAIN.ATTR_BASELINE;
+  }
+  return out;
+}
+
+/**
  * Build the full Attributes object: role defaults overlaid by any provided
  * values, every entry clamped to [0,100].
  * @param {Role} role
@@ -159,6 +191,31 @@ function buildAttributes(role, provided) {
     out[key] = clampNum(src[key], DOMAIN.ATTR_MIN, DOMAIN.ATTR_MAX, fallback);
   }
   return out;
+}
+
+/**
+ * Resolve a player's potential. An explicit value is clamped 0..100 and honoured
+ * verbatim. When omitted, derive a ceiling at or above the player's current
+ * overall, with an age-decreasing headroom (youth grow, veterans are capped) —
+ * so hand-authored players are never stranded below their own current ability.
+ * Pure; no randomness.
+ * @param {*} provided
+ * @param {Attributes} attributes  the player's built (clamped) attributes
+ * @param {number} age
+ * @returns {number}
+ */
+function potentialFor(provided, attributes, age) {
+  if (typeof provided === 'number' && Number.isFinite(provided)) {
+    return clampNum(provided, DOMAIN.ATTR_MIN, DOMAIN.ATTR_MAX, DOMAIN.DEFAULT_POTENTIAL);
+  }
+  let sum = 0;
+  for (const key of ATTRIBUTE_KEYS) sum += attributes[key];
+  const ovr = sum / ATTRIBUTE_KEYS.length;
+  const headroom = Math.min(
+    DOMAIN.POTENTIAL_HEADROOM_MAX,
+    Math.max(0, (DOMAIN.POTENTIAL_REF_AGE - age) * DOMAIN.POTENTIAL_HEADROOM_PER_YEAR)
+  );
+  return Math.round(clampNum(ovr + headroom, ovr, DOMAIN.POTENTIAL_MAX, DOMAIN.DEFAULT_POTENTIAL));
 }
 
 /**
@@ -306,7 +363,9 @@ export function createPlayer(partial = {}) {
     : null;
 
   const nationality = typeof p.nationality === 'string' && p.nationality.length > 0 ? p.nationality : DOMAIN.DEFAULT_NATIONALITY;
-  const potential = clampNum(p.potential, DOMAIN.ATTR_MIN, DOMAIN.ATTR_MAX, DOMAIN.DEFAULT_POTENTIAL);
+  const attributes = buildAttributes(role, p.attributes);
+  const age = clampNum(p.age, 14, 60, DOMAIN.DEFAULT_AGE);
+  const potential = potentialFor(p.potential, attributes, age);
 
   return {
     id: typeof p.id === 'string' && p.id.length > 0 ? p.id : `player_${handle}`,
@@ -316,9 +375,9 @@ export function createPlayer(partial = {}) {
     languages: buildLanguages(p.languages, nationality),
     traits: buildTraits(p.traits),
     tier: DOMAIN.TIERS.includes(p.tier) ? p.tier : DOMAIN.DEFAULT_TIER,
-    age: clampNum(p.age, 14, 60, DOMAIN.DEFAULT_AGE),
+    age,
     role,
-    attributes: buildAttributes(role, p.attributes),
+    attributes,
     potential,
     scouting: buildScouting(p.scouting, potential),
     proficiency: buildProficiency(role, p.proficiency),

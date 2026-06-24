@@ -55,7 +55,7 @@ export function decideRetirement(player, rng)   // -> boolean
 export function generateNewgens(count, rng, opts = {})   // -> Player[] (frozen, status:'free_agent')
 //   opts: { idPrefix='ng', nationalityPool=[…], season=0 }
 ```
-- Each: `age∈[AGE_MIN,AGE_MAX]`, random role, `potential = clamp(gaussian(POT_MEAN,POT_STD), POT_MIN, POT_MAX)` (rare wonderkids), CURRENT attributes generated LOW = `potential − headroom` with role slant + per-attr noise (a 16-yo is far below their ceiling). Generated handle/name via deterministic syllable tables (data local to this module). Globally-unique ids `"${idPrefix}-${season}-${i}-${token}"`. `contract.status='free_agent'`, `teamId:null`.
+- Each: `age∈[AGE_MIN,AGE_MAX]`, role by weighted draw (`ROLE_WEIGHTS`, so intake never droughts a role), `potential = clamp(gaussian(POT_MEAN,POT_STD), POT_MIN, POT_MAX)` (rare wonderkids), CURRENT attributes generated LOW = `potential − headroom` with role slant (the role's `roleProfile` re-centred to zero mean, so OVERALL stays `potential − headroom`) + per-attr noise (a 16-yo is far below their ceiling). MEAN/MAX/HEADROOM are calibrated against the SEED world so the best newgens refill T1 turnover without deflating its average or inflating its ceiling (see `scripts/probe-newgen.mjs`). Generated handle/name via deterministic syllable tables (data local to this module). Globally-unique ids `"${idPrefix}-${season}-${i}-${token}"`. `contract.status='free_agent'`, `teamId:null`.
 - Deterministic: `count` players consume rng in a fixed order; same `(count, seed, opts)` ⇒ identical batch.
 
 ### 1.5 Contracts — `engine/career/offseason/contracts.js`
@@ -103,6 +103,7 @@ export function simCareer(seed, nSeasons)        // headless: run N full seasons
 
 ## 5. Testing — headless
 - P6a: `tests/unit/dynamics.test.mjs`, `unit/development.test.mjs`, `unit/retirement.test.mjs`, `unit/newgen.test.mjs`, `unit/contracts.test.mjs` — determinism (same seed ⇒ identical), clamping/ranges, and monotonic-direction invariants (winning↑form, fatigue↑with maps, young+high-potential grows, old declines, decline hits physical > mental, age≥FORCE_AGE retires, newgens below potential, expiring high-morale star renews). **Prior 53 suites unchanged.**
+- Talent-pool health: `tests/unit/talent-pool.test.mjs` runs multi-season distribution invariants (pyramid shape, role demographics/identity, long-run pool stability, no role drought, bounded pool, determinism); `scripts/probe-newgen.mjs [seed] [seasons]` prints prospect-quality/role histograms and per-season pool size/quality as realism evidence.
 - P6c/e: `tests/career.test.mjs` — `simCareer(seed, 3)` over several seeds: rosters stay valid every season, ages advance, retirements+newgens balance roster counts, same seed ⇒ identical career fingerprint, distinct seeds diverge; `simSeason` still byte-identical (regression guard). `scripts/demo-career.mjs` prints a 3-season career (a star's rise, a veteran's retirement, headline transfers, the champion each year).
 
 ## 6. Scope boundary

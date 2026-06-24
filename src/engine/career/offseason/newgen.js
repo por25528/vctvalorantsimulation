@@ -15,12 +15,18 @@
  */
 
 import { BALANCE } from '../../../config/balance.js';
-import { createPlayer } from '../../../domain/player.js';
-import { ATTR_KEYS, clamp, num } from '../playerStats.js';
+import { createPlayer, roleProfile } from '../../../domain/player.js';
+import { ATTR_KEYS, clamp, num, meanAttrs } from '../playerStats.js';
 import { assignTraitsForNewgen } from '../traits.js';
 
 const N = BALANCE.CAREER.NEWGEN;
 const ROLES = Object.freeze(['Duelist', 'Initiator', 'Controller', 'Sentinel']);
+// Per-role intake weight (defaults to uniform if a role is unlisted). A single
+// weighted draw per newgen keeps the rng stream's draw count stable.
+const ROLE_WEIGHT = (role) => {
+  const w = N.ROLE_WEIGHTS && typeof N.ROLE_WEIGHTS[role] === 'number' ? N.ROLE_WEIGHTS[role] : 1;
+  return w > 0 ? w : 0;
+};
 
 // Syllable tables for generated handles/names (data, not tuning). Kept small and
 // stable so ids/handles are reproducible.
@@ -63,16 +69,25 @@ export function generateNewgens(count, rng, opts = {}) {
   /** @type {object[]} */
   const out = [];
   for (let i = 0; i < n; i += 1) {
-    const role = rng.pick(ROLES);
+    const role = rng.weightedPick(ROLES, ROLE_WEIGHT);
     const age = rng.range(N.AGE_MIN, N.AGE_MAX);
     let potential = Math.round(clamp(rng.gaussian(N.POT_MEAN, N.POT_STD), N.POT_MIN, N.POT_MAX));
     const headroom = rng.range(N.HEADROOM_MIN, N.HEADROOM_MAX);
     const baseOverall = clamp(potential - headroom, 20, 95);
 
+    // Role-SHAPED stat line centred on baseOverall: take the role's reference
+    // profile, re-centre it to zero mean (delta = slant − profileMean), and add
+    // those deltas to baseOverall. A generated Duelist is therefore aim-heavy /
+    // igl-light just like an authored one, while the player's OVERALL still
+    // equals baseOverall (deltas sum to ~0) so the quality calibration above is
+    // untouched. One gaussian per attribute keeps the rng draw count stable.
+    const profile = roleProfile(role);
+    const profileMean = meanAttrs(profile);
     /** @type {Record<string, number>} */
     const attributes = {};
     for (const k of ATTR_KEYS) {
-      attributes[k] = Math.round(clamp(baseOverall + rng.gaussian(0, N.ATTR_NOISE), 0, 100));
+      const slant = profile[k] - profileMean;
+      attributes[k] = Math.round(clamp(baseOverall + slant + rng.gaussian(0, N.ATTR_NOISE), 0, 100));
     }
 
     const nationality = rng.pick(natPool);

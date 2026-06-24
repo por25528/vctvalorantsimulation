@@ -1,0 +1,14 @@
+# Project agent memory
+
+This file is the project's committed home for project-intrinsic agent knowledge: build, test, release, architecture, and sharp-edge notes that should travel with the code.
+
+- Add durable project-specific notes here as they are discovered through real work.
+
+## Career engine — talent pool & newgens
+
+- **Determinism is sacred.** No `Math.random`/`Date`/`new Date()` anywhere in `core|domain|engine|config|data`; all randomness flows from an injected `rng` (`core/rng.js`). The match/format/season engines must stay byte-identical for a fixed world — `potential`/`age` are NOT read by the match engine (only the career layer + UI), so newgen/development/player tuning is safe to change without moving `simSeason`/`simSeries` results.
+- **Preserve rng DRAW COUNT, not just determinism.** `offseason/development.js` and `offseason/newgen.js` consume the rng stream in a fixed order; keep one draw per attribute and one role draw per newgen so downstream draws keep their positions. `rng.weightedPick` and `rng.pick` each consume exactly one stream value (`rng.gaussian` consumes two).
+- **Talent pool is calibrated against the SEED world**, not in the abstract: seed T1 overall ≈ 79 (mean), ceiling ≈ 85. Newgen `BALANCE.CAREER.NEWGEN.{POT_MEAN,POT_STD,POT_MAX}` + `HEADROOM_*` + `MARKET.NEWGEN_PER_OFFSEASON` are tuned so the rostered (T1) pool reaches a STABLE steady state (~70-73 mean, ceiling ~88-90) instead of deflating into the 60s or inflating into 95-overall gods. The steady-state mean sits a few points below the authored seed on purpose: real development can't make every 20-year-old a finished product, so a youth-movement dip is expected and realistic.
+- **Seed players omit `potential`**, so `domain/player.js` derives it from current overall + an age-decreasing headroom (`POTENTIAL_*` in the `DOMAIN` block). Without this a seed star (overall ~82) would default below their overall and could only decline. An explicit `potential` is always honoured verbatim.
+- **Newgen stat lines are role-SHAPED**, not flat: `newgen.js` re-centres `domain/player.js`'s `roleProfile(role)` to zero mean and adds it to `baseOverall`, so a generated Duelist is aim-heavy/igl-light (matching authored players and what `development.js` preserves) while OVERALL still equals `baseOverall` (calibration untouched).
+- **Validate the OUTCOME, not just the code.** `node scripts/probe-newgen.mjs [seed] [seasons]` prints the seed-world demographics, a large newgen quality/role histogram, and long-run pool health (rostered overall mean/p90/max, active-pool size, per-role counts) per season — run it across a few seeds to confirm stability before changing any NEWGEN/AGING constant. `tests/unit/talent-pool.test.mjs` encodes the resulting invariants (pyramid shape, role demographics/identity, multi-season stability, no role drought, bounded pool, determinism).
