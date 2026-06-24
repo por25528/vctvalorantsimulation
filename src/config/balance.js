@@ -186,6 +186,11 @@ export const BALANCE = deepFreeze({
     CONTRACT: {
       LENGTH_MIN: 1,
       LENGTH_MAX: 3, // renewal length in seasons
+      // Age-aware contract length (M7): clubs hand young/prime players longer deals
+      // and only tie aging players down for a season or two — realistic term length.
+      // Stays within [LENGTH_MIN, LENGTH_MAX]; still one rng draw (determinism intact).
+      LENGTH_AGE_MID: 30, // at/above this age the max term drops to LENGTH_MAX−1
+      LENGTH_AGE_VET: 33, // at/above this age only LENGTH_MIN-length deals are offered
       RENEW_BASE: 0.55, // baseline renew probability
       RENEW_MORALE_K: 0.004, // + per morale point above MORALE_BASE (60)
       RENEW_VALUE_K: 0.004, // + per (overall-70) point (good players get kept)
@@ -208,11 +213,31 @@ export const BALANCE = deepFreeze({
       USER_SIGN_LENGTH: 3, // seasons on a user-brokered signing / extension (deterministic; no rng in the UI layer)
       NEWGEN_PER_OFFSEASON: 26, // base youth intake each off-season (sized so the best rookies + a deepening FA pool refill T1 turnover without deflation)
       NEWGEN_BUFFER: 8, // extra newgens minted beyond known holes (spare prospects)
-      VALUE_POT_WEIGHT: 0.5, // player market value = overall + this*max(0, potential-overall)
       SIGN_WEIGHT_POW: 3, // weightedPick exponent on value^pow (better FAs usually win the bid)
       UPGRADE_MARGIN: 6, // a free agent must beat a team's worst starter by this to tempt an upgrade
       UPGRADE_CHANCE: 0.45, // and the rng must allow the swap
-      REPORT_NOTABLE_TRAJECTORY: 1.0 // |overall delta| at/above which a development is "notable" in the report
+      REPORT_NOTABLE_TRAJECTORY: 1.0, // |overall delta| at/above which a development is "notable" in the report
+      // ---- player valuation (offseason/transfers.js: playerValue) — M7 ----
+      // A player's MARKET VALUE is not a single number. Ability (overall) is the base;
+      // unrealized upside (potential − overall) is worth more the younger the player
+      // (a teenager will realize their ceiling, a 29-yo never will); an AGE CURVE then
+      // depreciates the asset past its prime (a 33-yo 80-ovr is worth far less than a
+      // 24-yo 80-ovr — fewer prime years, lower resale), floored so a proven veteran
+      // keeps some name value; and form/morale nudge perceived value. This stops the
+      // AI overpaying transfer fees for declining 30-somethings (the M7 user ask).
+      VALUE_POT_WEIGHT: 0.5, // upside weight at peak youth: value += this * upside * youthFactor
+      VALUE_UPSIDE_AGE_FULL: 21, // at/below this age the FULL upside premium applies
+      VALUE_UPSIDE_AGE_ZERO: 29, // at/above this age upside is worth ~nothing (prime spent)
+      VALUE_AGE_DECLINE_PIVOT: 28, // value depreciates per year of age past this
+      VALUE_AGE_DECLINE_K: 0.05, // − this fraction of value per year past the pivot
+      VALUE_AGE_MULT_MIN: 0.5, // age alone never docks more than half (experience/name floor)
+      VALUE_FORM_K: 0.06, // ± this * (form/100): an in-form player is worth a touch more
+      VALUE_MORALE_K: 0.04, // ± this * ((morale−60)/40): a settled, happy player worth a touch more
+      // ---- role-complete roster construction (offseason/transfers.js: fillRosters) ----
+      // When filling a hole, a free agent that plugs a MISSING core role gets this
+      // multiplicative boost in the value-weighted draw, so AI lineups trend toward a
+      // balanced Duelist/Initiator/Controller/Sentinel five instead of stacking a role.
+      ROLE_NEED_FILL_MULT: 6
     },
     // ---- awards & all-pro (P7a, engine/career/awards.js) ----
     AWARDS: {

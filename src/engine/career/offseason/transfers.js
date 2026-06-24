@@ -37,23 +37,50 @@
 
 import { BALANCE } from '../../../config/balance.js';
 import { overall, num, clamp } from '../playerStats.js';
-import { salaryFor } from './contracts.js';
+import { salaryFor, contractLengthFor } from './contracts.js';
 import { teamAttractiveness, signingDesirability } from '../attractiveness.js';
 
 const M = BALANCE.CAREER.MARKET;
-const CL = BALANCE.CAREER.CONTRACT;
 const TR = BALANCE.CAREER.TRANSFER;
 const FLOOR = BALANCE.CAREER.ECONOMY.BUDGET_FLOOR;
 
 /**
- * Market value of a player: current overall plus a premium for unrealized upside.
+ * Market value of a player — deliberately NOT a single number (M7). It blends:
+ *   - ABILITY: current overall (the base).
+ *   - UPSIDE: unrealized headroom (potential − overall), weighted down by AGE — a
+ *     teenager will realise their ceiling so it counts fully; a 29-yo never will so
+ *     it counts for ~nothing.
+ *   - AGE CURVE: the asset depreciates each year past its prime (fewer prime years
+ *     left, lower resale), floored so a proven veteran keeps some name value — so a
+ *     33-yo 80-overall is valued well below a 24-yo 80-overall (the AI stops
+ *     overpaying fees for decliners).
+ *   - CONDITION: form & morale nudge perceived value a little either way.
+ * Pure (reads only player fields); shared by fee pricing, signing draws, upgrade
+ * targeting and the drop/sell choice so the whole market agrees on worth.
+ *
  * @param {object} player
- * @returns {number}
+ * @returns {number} value (>= 0)
  */
 export function playerValue(player) {
   const o = overall(player);
   const pot = num(player && player.potential, o);
-  return o + M.VALUE_POT_WEIGHT * Math.max(0, pot - o);
+  const age = num(player && player.age, 21);
+  // Upside, discounted by age (1 at/below FULL age → 0 at/above ZERO age).
+  const upside = Math.max(0, pot - o);
+  const youth = clamp(
+    (M.VALUE_UPSIDE_AGE_ZERO - age) / (M.VALUE_UPSIDE_AGE_ZERO - M.VALUE_UPSIDE_AGE_FULL),
+    0, 1
+  );
+  let value = o + M.VALUE_POT_WEIGHT * upside * youth;
+  // Age depreciation past the prime pivot, floored at VALUE_AGE_MULT_MIN.
+  const yearsPast = Math.max(0, age - M.VALUE_AGE_DECLINE_PIVOT);
+  const ageMult = Math.max(M.VALUE_AGE_MULT_MIN, 1 - M.VALUE_AGE_DECLINE_K * yearsPast);
+  // Condition: in-form & settled players read a touch more valuable.
+  const form = num(player && player.dynamics && player.dynamics.form, 0);
+  const morale = num(player && player.dynamics && player.dynamics.morale, 60);
+  const condition = 1 + M.VALUE_FORM_K * (form / 100) + M.VALUE_MORALE_K * ((morale - 60) / 40);
+  value = value * ageMult * Math.max(0, condition);
+  return Math.max(0, value);
 }
 
 /**
@@ -207,7 +234,7 @@ export function runTransferMarket(world, rng, opts = {}) {
   /** Sign a free agent to a team (mutates working state, records the move). */
   function sign(teamId, playerId, kind, salaryOverride) {
     const p = players[playerId];
-    const length = rng.range(CL.LENGTH_MIN, CL.LENGTH_MAX);
+    const length = contractLengthFor(p, rng);
     const salary = salaryOverride > 0 ? salaryOverride : salaryFor(p);
     players[playerId] = { ...p, contract: { teamId, salary, expires: season + length, status: 'active' } };
     teams[teamId].roster.push(playerId);
@@ -227,7 +254,7 @@ export function runTransferMarket(world, rng, opts = {}) {
   /** Buy a contracted player from `sellerId` for `fee` (moves cash + the player). */
   function buy(buyerId, sellerId, playerId, fee, salaryOverride) {
     const p = players[playerId];
-    const length = rng.range(CL.LENGTH_MIN, CL.LENGTH_MAX);
+    const length = contractLengthFor(p, rng);
     const salary = salaryOverride > 0 ? salaryOverride : salaryFor(p);
     // remove from seller, add to buyer
     const sr = teams[sellerId].roster;
@@ -260,10 +287,13 @@ export function runTransferMarket(world, rng, opts = {}) {
       const pool = freeAgents().filter((id) => salaryFor(players[id]) <= team.budget);
       const usable = pool.length ? pool : freeAgents(); // never stall a roster below MIN
       if (usable.length === 0) break; // exhausted — the orchestrator's safety net fills the rest
+      // Prefer the better player, but heavily bias the draw toward a free agent who
+      // plugs a MISSING core role, so the patched five trends role-complete (a
+      // balanced Duelist/Initiator/Controller/Sentinel lineup) rather than stacking.
       const chosen = rng.weightedPick(usable, (id) => {
         const p = players[id];
-        const roleBonus = need.has(p.role) ? TR.ROLE_NEED_BONUS : 0;
-        return Math.pow(Math.max(1, playerValue(p) + roleBonus), M.SIGN_WEIGHT_POW);
+        const base = Math.pow(Math.max(1, playerValue(p)), M.SIGN_WEIGHT_POW);
+        return need.has(p.role) ? base * M.ROLE_NEED_FILL_MULT : base;
       });
       sign(team.id, chosen, 'signing');
     }

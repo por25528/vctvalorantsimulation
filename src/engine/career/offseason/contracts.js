@@ -45,6 +45,25 @@ export function salaryFor(player) {
 }
 
 /**
+ * The term (in seasons) a club offers a player, biased by age: young/prime players
+ * get the full LENGTH_MIN..LENGTH_MAX range, players at/over LENGTH_AGE_MID are
+ * capped a year shorter, and veterans at/over LENGTH_AGE_VET only get the minimum
+ * term — clubs don't lock a fading 34-yo into a 3-year deal. Always within
+ * [LENGTH_MIN, LENGTH_MAX] and consumes exactly one rng draw (determinism intact).
+ *
+ * @param {object} player
+ * @param {import('../../../core/rng.js').Rng} rng
+ * @returns {number} term length in seasons
+ */
+export function contractLengthFor(player, rng) {
+  const age = num(player && player.age, 21);
+  let maxLen = C.LENGTH_MAX;
+  if (age >= C.LENGTH_AGE_VET) maxLen = C.LENGTH_MIN;
+  else if (age >= C.LENGTH_AGE_MID) maxLen = Math.max(C.LENGTH_MIN, C.LENGTH_MAX - 1);
+  return rng.range(C.LENGTH_MIN, maxLen);
+}
+
+/**
  * Resolve an expiring player's contract.
  *
  * @param {object} player
@@ -73,7 +92,7 @@ export function resolveContract(player, team, rng, opts = {}) {
     return { teamId: null, salary: 0, expires: 0, status: 'free_agent' };
   }
 
-  const length = rng.range(C.LENGTH_MIN, C.LENGTH_MAX);
+  const length = contractLengthFor(player, rng);
   const salary = salaryFor(player);
   const teamId = team && typeof team.id === 'string'
     ? team.id

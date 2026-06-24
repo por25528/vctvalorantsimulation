@@ -75,6 +75,30 @@ export default async function run() {
   section('playerValue — upside adds to current overall');
   assert(playerValue(mk('s', 70, { potential: 90 })) > playerValue(mk('j', 70, { potential: 70 })), 'a high-potential player is valued above a capped one');
 
+  section('playerValue — multi-factor: age, upside-by-age, form (M7)');
+  // A uniform player at a given overall, with controllable age / form / morale.
+  const mkAge = (ovr, { age = 24, potential, form = 0, morale = 60 } = {}) => {
+    const attributes = {};
+    for (const k of ['aim', 'movement', 'reaction', 'composure', 'consistency', 'gameSense', 'utility', 'trading', 'igl']) attributes[k] = ovr;
+    return createPlayer({ id: `p${ovr}_${age}_${form}`, name: 'P', role: 'Duelist', age, potential: potential != null ? potential : ovr, attributes, dynamics: { form, morale } });
+  };
+  // Age curve: at equal ability/potential, a prime player is worth more than a faded vet.
+  assert(playerValue(mkAge(80, { age: 24 })) > playerValue(mkAge(80, { age: 34 })), 'a 24-yo is valued above a 34-yo of identical overall (age depreciation)');
+  // Upside is age-discounted: the same headroom is worth more to a teenager than a near-30 player.
+  assert(
+    playerValue(mkAge(70, { age: 17, potential: 92 })) > playerValue(mkAge(70, { age: 28, potential: 92 })),
+    'unrealized upside is worth more to a younger player'
+  );
+  // Form/morale nudge value: an in-form, happy player is worth a touch more than a slumping one.
+  assert(
+    playerValue(mkAge(80, { age: 24, form: 80, morale: 90 })) > playerValue(mkAge(80, { age: 24, form: -80, morale: 30 })),
+    'an in-form, settled player is valued above a slumping, unhappy one'
+  );
+  // Never negative, even for a faded, low-overall, slumping veteran.
+  assert(playerValue(mkAge(40, { age: 36, form: -100, morale: 0 })) >= 0, 'value is never negative');
+  // The age penalty is bounded (a proven vet keeps some name value, never zero).
+  assert(playerValue(mkAge(80, { age: 45 })) >= 80 * BALANCE.CAREER.MARKET.VALUE_AGE_MULT_MIN - 1e-6, 'age alone never docks below the floor multiplier');
+
   section('transferFee — a contracted star costs a real fee; years, prestige & a coach all matter');
   const star = mk('star', 88, { teamId: 'small', status: 'active', expires: 10 });
   const sellerSmall = createTeam({ id: 'small', reputation: 35 });
