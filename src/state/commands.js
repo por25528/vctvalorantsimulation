@@ -211,7 +211,7 @@ function buildSaveGame(store, opts = {}) {
  */
 function hydrateSaveGame(store, saveGame) {
   const world = saveGame.world && saveGame.world.teams
-    ? { leagues: saveGame.world.leagues || {}, teams: saveGame.world.teams, players: saveGame.world.players || {} }
+    ? { leagues: saveGame.world.leagues || {}, teams: saveGame.world.teams, players: saveGame.world.players || {}, tier2: saveGame.world.tier2 || null }
     : worldToSlice(buildWorld());
   store.dispatch(replaceWorld(world));
   store.dispatch(resetEvents());
@@ -271,16 +271,17 @@ function hydrateSaveGame(store, saveGame) {
 }
 
 /**
- * Adapt a World { teamsById, playersById, leagues } (engine shape) to the
- * world slice shape { teams, players, leagues }.
+ * Adapt a World { teamsById, playersById, leagues, tier2? } (engine shape) to
+ * the world slice shape { teams, players, leagues, tier2 }.
  * @param {object} world
- * @returns {{leagues:object, teams:object, players:object}}
+ * @returns {{leagues:object, teams:object, players:object, tier2:object|null}}
  */
 function worldToSlice(world) {
   return {
     leagues: world.leagues || {},
     teams: world.teamsById || {},
-    players: world.playersById || {}
+    players: world.playersById || {},
+    tier2: world.tier2 || null
   };
 }
 
@@ -1323,17 +1324,19 @@ export function importSave(store, json) {
 /* ------------------------------------------------------------------ */
 
 /**
- * Adapt the world slice { teams, players, leagues } to the engine World
- * { teamsById, playersById, leagues } that the season engine expects.
- * @param {{teams:object, players:object, leagues:object}} worldSlice
- * @returns {{teamsById:object, playersById:object, leagues:object}}
+ * Adapt the world slice { teams, players, leagues, tier2 } to the engine World
+ * { teamsById, playersById, leagues, tier2? } that the season engine expects.
+ * @param {{teams:object, players:object, leagues:object, tier2?:object|null}} worldSlice
+ * @returns {{teamsById:object, playersById:object, leagues:object, tier2?:object}}
  */
 function sliceToWorld(worldSlice) {
-  return {
+  const out = {
     leagues: worldSlice.leagues || {},
     teamsById: worldSlice.teams || {},
     playersById: worldSlice.players || {}
   };
+  if (worldSlice.tier2) out.tier2 = worldSlice.tier2;
+  return out;
 }
 
 /**

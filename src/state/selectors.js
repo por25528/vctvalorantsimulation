@@ -24,6 +24,7 @@ import { ratePlayersOverSeries } from '../engine/career/rating.js';
 import { computeRankings } from '../engine/career/ranking.js';
 import { getRevealedTraits } from '../engine/career/scouting.js';
 import { CP_TABLE } from '../config/cpTable.js';
+import { TIER2_TEAMS_BY_REGION, TIER2_REGION_ORDER } from '../data/seed/tier2.js';
 
 /* ----------------------------- world ----------------------------- */
 
@@ -989,4 +990,83 @@ export const selectScoutingProspects = (state) => {
     const { known, hiddenCount } = getRevealedTraits(player, focusSeasons, careerSeed);
     return { player, known, hiddenCount, focusSeasons };
   }).sort((a, b) => meanOverall(b.player) - meanOverall(a.player));
+};
+
+/* ----------------------- Tier-2 (Challengers) -------------------- */
+
+/**
+ * Static per-team lookup built once from the Tier-2 seed data (immutable).
+ * Maps teamId -> { id, name, tag, region } for all 48 T2 clubs.
+ * @type {Record<string, {id:string, name:string, tag:string, region:string}>}
+ */
+const T2_TEAM_META = (() => {
+  const out = {};
+  for (const region of TIER2_REGION_ORDER) {
+    for (const meta of TIER2_TEAMS_BY_REGION[region] || []) {
+      out[meta.id] = { ...meta, region };
+    }
+  }
+  return Object.freeze(out);
+})();
+
+/**
+ * Static region -> [teamId] list (stable order = seed data order).
+ * @type {Record<string, string[]>}
+ */
+const T2_REGION_TEAM_IDS = (() => {
+  const out = {};
+  for (const region of TIER2_REGION_ORDER) {
+    out[region] = Object.freeze((TIER2_TEAMS_BY_REGION[region] || []).map((m) => m.id));
+  }
+  return Object.freeze(out);
+})();
+
+/**
+ * Tier-2 (Challengers) CP standings by region, derived from the season's T2
+ * ledger. Each region lists all 12 clubs ranked by cumulative CP (ties broken
+ * by teamId). Enriched with team name + tag from the static seed data.
+ *
+ * Returns `{ hasData: false, byRegion: {} }` before the first T2 slot plays
+ * (empty ledger); from the first regional slot onward `hasData` is true and
+ * every region has 12 ranked rows (including teams with CP 0).
+ *
+ * @param {object} state
+ * @returns {{
+ *   hasData: boolean,
+ *   byRegion: Record<string, Array<{
+ *     rank: number,
+ *     teamId: string,
+ *     teamName: string,
+ *     teamTag: string,
+ *     cp: number
+ *   }>>
+ * }}
+ */
+export const selectT2Standings = (state) => {
+  const season = selectSeason(state);
+  if (!season || !season.tier2 || !season.tier2.ledger) {
+    return { hasData: false, byRegion: {} };
+  }
+  const totals = season.tier2.ledger.totals || {};
+  const hasData = Object.keys(totals).length > 0;
+
+  /** @type {Record<string, Array<object>>} */
+  const byRegion = {};
+  for (const region of TIER2_REGION_ORDER) {
+    const teamIds = T2_REGION_TEAM_IDS[region] || [];
+    const rows = teamIds.map((teamId) => {
+      const meta = T2_TEAM_META[teamId] || { id: teamId, name: teamId, tag: '???', region };
+      return {
+        teamId,
+        teamName: meta.name,
+        teamTag: meta.tag,
+        cp: totals[teamId] || 0
+      };
+    });
+    rows.sort((a, b) => (b.cp - a.cp) || (a.teamId < b.teamId ? -1 : 1));
+    rows.forEach((row, i) => { row.rank = i + 1; });
+    byRegion[region] = rows;
+  }
+
+  return { hasData, byRegion };
 };

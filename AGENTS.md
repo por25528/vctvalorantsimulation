@@ -109,12 +109,14 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   signs them next window; weak surplus T1 free agents fall to T2. It reuses the T1
   `developPlayer`/`decideRetirement`/`generateNewgens` so curves are consistent. Knobs
   in `BALANCE.CAREER.TIER2`. ~8 promote + 8 relegate per off-season by default.
-- **UI caveat:** the store world-slice bridge (`commands.js` `worldToSlice`/
-  `sliceToWorld`) only carries `{leagues, teams, players}`, so a career driven through
-  the UI store gracefully DROPS `tier2` (no crash; T2 simply doesn't simulate there).
-  T2 is fully exercised by the headless engine path (`simCareer`, `tier2.test.mjs`).
-  Wiring T2 through the UI/persistence would mean touching the world reducer, slice
-  mappers, serializer and save schema — out of scope for the engine build.
+- **UI wiring:** `worldToSlice`/`sliceToWorld` in `commands.js` now carry `world.tier2`
+  through the store world slice (`state.world.tier2`). This means `advanceSeason` runs
+  T2 events in the UI path (same as the headless engine path). Legacy saves without
+  `tier2` in the world slot get `null` gracefully (no crash; T2 simply doesn't
+  simulate for that session). The new `Tier2Screen` (`src/ui/screens/Tier2.js`) surfaces
+  the live `season.state.tier2.ledger` standings via `selectT2Standings` in selectors.js,
+  which reads team names from the static `TIER2_TEAMS_BY_REGION` seed data (no engine
+  call needed at render time).
 
 ## Build / test / run
 

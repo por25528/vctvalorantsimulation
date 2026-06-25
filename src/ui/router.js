@@ -46,6 +46,7 @@ import { Editor } from './screens/Editor.js';
 import { Offseason } from './screens/Offseason.js';
 import { Scouting } from './screens/Scouting.js';
 import { FinancesScreen } from './screens/Finances.js';
+import { Tier2Screen } from './screens/Tier2.js';
 
 /**
  * Screen id -> screen render fn (CONTRACTS-UI §5).
@@ -78,7 +79,8 @@ export const ROUTES = Object.freeze({
   awards: Awards,
   news: News,
   editor: Editor,
-  offseason: Offseason
+  offseason: Offseason,
+  tier2: Tier2Screen
 });
 
 /** The fallback screen id for unknown routes. */
