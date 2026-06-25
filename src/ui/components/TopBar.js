@@ -9,6 +9,7 @@
 
 import { h, classNames } from '../render.js';
 import { ContinueButton } from './ContinueButton.js';
+import { Icon } from './Icon.js';
 
 /**
  * @param {object} props
@@ -74,13 +75,16 @@ export function TopBar(props) {
             {
               type: 'button',
               class: classNames('btn', 'btn--ghost', 'topbar__spoiler', spoilerFree && 'topbar__spoiler--on'),
+              // keep an accessible name when the text label collapses on narrow viewports
+              'aria-label': spoilerFree ? 'Spoiler-free' : 'Spoilers',
               'aria-pressed': spoilerFree ? 'true' : 'false',
               title: spoilerFree
                 ? 'Spoiler-free is ON — results hide until you watch them. Click to show results instantly.'
                 : 'Spoilers shown — results appear immediately. Click for spoiler-free viewing.',
               onClick: () => onToggleSpoilerFree()
             },
-            spoilerFree ? '🙈 Spoiler-free' : '👁 Spoilers'
+            Icon(spoilerFree ? 'eye-off' : 'eye', { size: 16 }),
+            h('span', { class: 'topbar__btn-label' }, spoilerFree ? 'Spoiler-free' : 'Spoilers')
           )
         : null,
       // Hands-free autoplay: auto-advance the season match-day by match-day.
@@ -90,11 +94,13 @@ export function TopBar(props) {
             {
               type: 'button',
               class: classNames('btn', 'topbar__autoplay', autoplay ? 'btn--primary' : 'btn--ghost'),
+              'aria-label': autoplay ? 'Pause autoplay' : 'Autoplay',
               'aria-pressed': autoplay ? 'true' : 'false',
               title: autoplay ? 'Pause autoplay' : 'Autoplay — sit back and watch',
               onClick: () => onToggleAutoplay()
             },
-            autoplay ? '⏸ Auto' : '▶ Auto'
+            Icon(autoplay ? 'pause' : 'play', { size: 16 }),
+            h('span', { class: 'topbar__btn-label' }, 'Auto')
           )
         : null,
       // Autoplay cadence (only meaningful while autoplay runs).
@@ -106,10 +112,12 @@ export function TopBar(props) {
             {
               type: 'button',
               class: 'btn btn--ghost topbar__sim',
+              'aria-label': 'Sim event',
               title: 'Reveal the rest of this event at once',
               onClick: () => onSimEvent()
             },
-            '⏭ Sim event'
+            Icon('skip', { size: 16 }),
+            h('span', { class: 'topbar__btn-label' }, 'Sim event')
           )
         : null,
       ContinueButton({ complete: kickoffComplete, onContinue, label: continueLabel })

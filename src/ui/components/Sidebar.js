@@ -12,28 +12,31 @@
  */
 
 import { h, classNames } from '../render.js';
+import { Icon } from './Icon.js';
 
 /**
- * Primary nav items: screen id + label + glyph.
- * @type {Array<{screen:string,label:string,glyph:string}>}
+ * Primary nav items: screen id + label + icon name (see {@link Icon}).
+ * The legacy `glyph` is retained only as a textual fallback / accessibility hint
+ * — the rendered marker is the coherent inline-SVG `icon`.
+ * @type {Array<{screen:string,label:string,icon:string,glyph:string}>}
  */
 export const NAV_ITEMS = [
-  { screen: 'home', label: 'Home', glyph: '⌂' },          // house
-  { screen: 'matchday', label: 'Match Day', glyph: '▶' }, // day-by-day reveal
-  { screen: 'news', label: 'Inbox', glyph: '📰' },        // news feed
-  { screen: 'squad', label: 'Squad', glyph: '👥' },       // your team's roster
-  { screen: 'market', label: 'Transfers', glyph: '⇄' },   // transfer market
-  { screen: 'offseason', label: 'Transfer Window', glyph: '🔁' }, // end-of-season league transfer board
-  { screen: 'calendar', label: 'Calendar', glyph: '▦' },  // grid
-  { screen: 'standings', label: 'Standings', glyph: '≡' },// bars
-  { screen: 'bracket', label: 'Bracket', glyph: '⑂' },    // bracket-ish
-  { screen: 'rankings', label: 'World Ranking', glyph: '🌐' }, // global Elo ranking
-  { screen: 'cp', label: 'CP Race', glyph: '◈' },         // points race
-  { screen: 'champions', label: 'Champions', glyph: '🏆' },// trophy
-  { screen: 'awards', label: 'Awards', glyph: '🏅' },     // medal
-  { screen: 'leaders', label: 'Leaders', glyph: '★' },    // star
-  { screen: 'editor', label: 'God Mode', glyph: '✎' },    // sandbox editor
-  { screen: 'saves', label: 'Saves', glyph: '💾' }        // floppy disk
+  { screen: 'home', label: 'Home', icon: 'home', glyph: '⌂' },
+  { screen: 'matchday', label: 'Match Day', icon: 'play', glyph: '▶' },
+  { screen: 'news', label: 'Inbox', icon: 'inbox', glyph: '✉' },
+  { screen: 'squad', label: 'Squad', icon: 'squad', glyph: '⛶' },
+  { screen: 'market', label: 'Transfers', icon: 'swap', glyph: '⇄' },
+  { screen: 'offseason', label: 'Transfer Window', icon: 'refresh', glyph: '↻' },
+  { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦' },
+  { screen: 'standings', label: 'Standings', icon: 'standings', glyph: '≡' },
+  { screen: 'bracket', label: 'Bracket', icon: 'bracket', glyph: '⑂' },
+  { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍' },
+  { screen: 'cp', label: 'CP Race', icon: 'target', glyph: '◈' },
+  { screen: 'champions', label: 'Champions', icon: 'trophy', glyph: '♚' },
+  { screen: 'awards', label: 'Awards', icon: 'medal', glyph: '✦' },
+  { screen: 'leaders', label: 'Leaders', icon: 'star', glyph: '★' },
+  { screen: 'editor', label: 'God Mode', icon: 'wand', glyph: '✎' },
+  { screen: 'saves', label: 'Saves', icon: 'save', glyph: '▤' }
 ];
 
 /**
@@ -91,10 +94,14 @@ function navItem(item, activeScreen, onNavigate, unread) {
       {
         type: 'button',
         class: classNames('sidebar__item', active && 'sidebar__item--active'),
+        // The label text is the button's accessible name, but the responsive
+        // icon-rail (≤820px) hides .sidebar__label — keep an explicit aria-label
+        // so the nav stays usable for screen-reader / voice-control users there.
+        'aria-label': item.label,
         'aria-current': active ? 'page' : undefined,
         onClick: onNavigate ? () => onNavigate(item.screen) : undefined
       },
-      h('span', { class: 'sidebar__glyph', 'aria-hidden': 'true' }, item.glyph),
+      h('span', { class: 'sidebar__glyph', 'aria-hidden': 'true' }, Icon(item.icon, { size: 18 })),
       h('span', { class: 'sidebar__label' }, item.label),
       showBadge ? h('span', { class: 'badge sidebar__badge' }, unread > 99 ? '99+' : String(unread)) : null
     )

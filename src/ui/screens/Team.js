@@ -202,7 +202,7 @@ function seasonSeriesSection(state, teamId, groups, dispatch) {
       'div',
       { class: 'team__series team__series--empty' },
       h('h2', { class: 'team__section-title' }, 'Results'),
-      h('p', { class: 'screen__empty muted' }, 'No series played yet this season.')
+      h('p', { class: 'screen__empty screen__empty--inline muted' }, 'No series played yet this season.')
     );
   }
 

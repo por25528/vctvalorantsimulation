@@ -116,7 +116,11 @@
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.45);
   --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.55);
-  --ring: 0 0 0 2px var(--accent-soft);
+  /* keyboard focus ring — a crisp two-layer ring (dark separator + solid accent)
+   * so focus is clearly visible on every surface. Used app-wide via the many
+   * `box-shadow: var(--ring)` :focus-visible rules; the previous single 0.14-alpha
+   * tint was effectively invisible against the dark panels. */
+  --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 
   /* ---- layout sizing --------------------------------------------------- */
   --sidebar-w: 220px;

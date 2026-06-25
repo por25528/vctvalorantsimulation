@@ -27,7 +27,7 @@ import {
   selectTeam,
   selectFollowedTeam
 } from '../../src/state/selectors.js';
-import { CPStandingsScreen, id as cpId } from '../../src/ui/screens/CPStandings.js';
+import { CPStandingsScreen, id as cpId, CHAMPIONS_SLOTS } from '../../src/ui/screens/CPStandings.js';
 import { ChampionsScreen, id as champId } from '../../src/ui/screens/Champions.js';
 
 export default async function screenCpChampionsTest() {
@@ -142,6 +142,27 @@ export default async function screenCpChampionsTest() {
     assert(pacRows > 0, 'Pacific filter shows at least one team');
     assert(pacRows <= cpRowCount, 'Pacific filter shows no more rows than All');
     assert(pacRows < cpRowCount, 'Pacific filter narrows the table below All');
+  }
+
+  // The Champions qualification cut line: in the unfiltered, CP-desc view the
+  // table marks the top-N slots and draws a divider under the last qualifier.
+  if (standings.length > CHAMPIONS_SLOTS) {
+    assert(cpHtml.includes('cp__cut-legend'), 'CP screen shows the Champions cut legend');
+    assertEqual(
+      (cpHtml.match(/cp-standings__cut/g) || []).length,
+      1,
+      'exactly one row carries the cut divider (the last qualifying team)'
+    );
+    assertEqual(
+      (cpHtml.match(/cp-standings__in/g) || []).length,
+      CHAMPIONS_SLOTS,
+      `the top ${CHAMPIONS_SLOTS} teams are marked as inside the cut`
+    );
+    // A region-filtered view must NOT draw the (now-misleading) cut line.
+    const pacOnly = toHtml(
+      CPStandingsScreen(withRoute(state, 'cp', { region: 'pacific', sortDir: 'desc' }), store.dispatch)
+    );
+    assert(!pacOnly.includes('cp-standings__cut'), 'region-filtered CP view hides the cut line');
   }
 
   // ======================= CHAMPIONS SCREEN ===============================

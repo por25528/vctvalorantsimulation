@@ -189,7 +189,7 @@ function bracketSection(state, event, dispatch) {
       h('h2', { class: 'screen__section-title' }, 'Playoff Bracket'),
       h(
         'p',
-        { class: 'screen__empty' },
+        { class: 'screen__empty screen__empty--inline' },
         'The bracket appears once Champions is played.'
       )
     );

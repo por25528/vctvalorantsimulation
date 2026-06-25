@@ -26,6 +26,7 @@
 
 import { h, classNames } from '../render.js';
 import { ContinueButton } from '../components/ContinueButton.js';
+import { Icon } from '../components/Icon.js';
 import { navigate } from '../../state/actions.js';
 import { continueSeason, openEvent } from '../../state/commands.js';
 import {
@@ -138,7 +139,7 @@ function championBanner(state, championId, seasonIndex) {
   return h(
     'div',
     { class: 'home__champion-banner', id: 'home-champion-banner' },
-    h('span', { class: 'home__champion-trophy' }, '🏆'),
+    Icon('trophy', { size: 30, class: 'home__champion-trophy' }),
     h(
       'div',
       { class: 'home__champion-text' },
@@ -275,7 +276,9 @@ function followedPathCard(state, season, followed, go, store) {
                   e.rank === 1 && 'badge--win'
                 )
               },
-              e.rank === 1 ? '🏆 1st' : ordinal(e.rank)
+              e.rank === 1
+                ? [Icon('trophy', { size: 12, class: 'home__path-trophy' }), ' 1st']
+                : ordinal(e.rank)
             ),
             h('span', { class: 'home__path-event' }, e.label)
           )

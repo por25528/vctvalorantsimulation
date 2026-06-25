@@ -230,7 +230,7 @@ function boxScoreSection(lines) {
       'div',
       { class: 'player__boxscore player__boxscore--empty' },
       h('h2', { class: 'player__section-title' }, 'Event Box Scores'),
-      h('p', { class: 'screen__empty muted' }, 'No maps played in this event.')
+      h('p', { class: 'screen__empty screen__empty--inline muted' }, 'No maps played in this event.')
     );
   }
 

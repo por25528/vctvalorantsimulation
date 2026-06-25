@@ -82,6 +82,9 @@ export default async function run() {
   assert(doneHtml.includes('Off-season'), 'home prompts the off-season once the season is decided');
   const champName = (state.world.teams[championId] || {}).name || championId;
   assert(doneHtml.includes(champName), 'champion banner names the crowned World Champion');
+  // The trophy marker is now a cross-platform inline icon, not a tofu-prone emoji.
+  assert(doneHtml.includes('home__champion-trophy'), 'champion banner renders the trophy icon');
+  assert(doneHtml.includes('<svg') && !doneHtml.includes('🏆'), 'champion banner uses an svg icon, not an emoji');
 
   // Continuing again resolves the off-season and starts the next season.
   continueSeason(store);
@@ -100,6 +103,9 @@ export default async function run() {
   assert(calHtml.includes('Pacific'), 'calendar lists the Pacific league row under the Kickoff');
   assert(calHtml.includes('calendar__slot-status'), 'calendar slot carries a status badge');
   assert(calHtml.includes('Played'), 'played events show a Played status');
+  // Winner rows mark the champion with the inline trophy icon (no emoji tofu).
+  assert(calHtml.includes('calendar__event-trophy'), 'played-event winner carries the trophy icon');
+  assert(!calHtml.includes('🏆'), 'calendar no longer ships the trophy emoji');
 
   // A FRESH (unplayed) calendar shows the Up next / Upcoming badges.
   const freshStore = buildStore();
