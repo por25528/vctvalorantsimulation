@@ -245,7 +245,7 @@ button {
 .topbar__autoplay,
 .topbar__sim,
 .topbar__save { padding: var(--sp-2) var(--sp-3); }
-.topbar__spoiler--on { color: var(--cp); }
+/* the active spoiler-free tint lives in the later .topbar__spoiler--on rule */
 .topbar .icon { flex: 0 0 auto; }
 .topbar__btn-label { line-height: 1; }
 
@@ -401,7 +401,8 @@ button {
   font-weight: var(--fw-semibold);
   margin: var(--sp-5) 0 var(--sp-3);
 }
-.screen__empty { padding: var(--sp-6); text-align: center; color: var(--muted); }
+/* .screen__empty is defined once, in the UI-polish block near the end of this
+ * sheet (calm centered card + --inline variant). */
 
 /* =========================================================== SURFACES === */
 .panel {

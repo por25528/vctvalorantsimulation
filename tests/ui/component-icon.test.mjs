@@ -64,6 +64,11 @@ export default async function run() {
   for (const emoji of ['📰', '👥', '🔁', '🌐', '🏆', '🏅', '💾']) {
     assert(!sidebar.includes(emoji), `sidebar no longer ships emoji "${emoji}"`);
   }
+  // The responsive icon-rail (≤820px) hides the text label, so each nav button
+  // must carry an explicit aria-label to keep an accessible name in that mode.
+  for (const it of NAV_ITEMS) {
+    assert(sidebar.includes(`aria-label="${it.label}"`), `nav button "${it.label}" has an aria-label for the icon rail`);
+  }
 
   // ---- TopBar: toolbar toggles pair an icon with their text label -----------
   const topbar = toHtml(
@@ -80,4 +85,7 @@ export default async function run() {
   assert(topbar.includes('Auto'), 'autoplay toggle keeps its label');
   assert(count(topbar, '<svg') >= 2, 'topbar toggles render icons');
   assert(!topbar.includes('🙈') && !topbar.includes('👁'), 'topbar no longer ships emoji toggles');
+  // toolbar toggles collapse to icon-only on narrow viewports — keep an aria-label
+  assert(topbar.includes('aria-label="Spoiler-free"'), 'spoiler toggle has an aria-label when collapsed');
+  assert(topbar.includes('aria-label="Autoplay"'), 'autoplay toggle has an aria-label when collapsed');
 }

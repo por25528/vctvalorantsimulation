@@ -75,6 +75,8 @@ export function TopBar(props) {
             {
               type: 'button',
               class: classNames('btn', 'btn--ghost', 'topbar__spoiler', spoilerFree && 'topbar__spoiler--on'),
+              // keep an accessible name when the text label collapses on narrow viewports
+              'aria-label': spoilerFree ? 'Spoiler-free' : 'Spoilers',
               'aria-pressed': spoilerFree ? 'true' : 'false',
               title: spoilerFree
                 ? 'Spoiler-free is ON — results hide until you watch them. Click to show results instantly.'
@@ -92,6 +94,7 @@ export function TopBar(props) {
             {
               type: 'button',
               class: classNames('btn', 'topbar__autoplay', autoplay ? 'btn--primary' : 'btn--ghost'),
+              'aria-label': autoplay ? 'Pause autoplay' : 'Autoplay',
               'aria-pressed': autoplay ? 'true' : 'false',
               title: autoplay ? 'Pause autoplay' : 'Autoplay — sit back and watch',
               onClick: () => onToggleAutoplay()
@@ -109,6 +112,7 @@ export function TopBar(props) {
             {
               type: 'button',
               class: 'btn btn--ghost topbar__sim',
+              'aria-label': 'Sim event',
               title: 'Reveal the rest of this event at once',
               onClick: () => onSimEvent()
             },

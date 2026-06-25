@@ -94,6 +94,10 @@ function navItem(item, activeScreen, onNavigate, unread) {
       {
         type: 'button',
         class: classNames('sidebar__item', active && 'sidebar__item--active'),
+        // The label text is the button's accessible name, but the responsive
+        // icon-rail (≤820px) hides .sidebar__label — keep an explicit aria-label
+        // so the nav stays usable for screen-reader / voice-control users there.
+        'aria-label': item.label,
         'aria-current': active ? 'page' : undefined,
         onClick: onNavigate ? () => onNavigate(item.screen) : undefined
       },
