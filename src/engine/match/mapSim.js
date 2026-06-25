@@ -27,6 +27,7 @@ import { BALANCE } from '../../config/balance.js';
 import { decideBuy, createEconomy, applyRoundResult } from './economy.js';
 import { simRound } from './roundSim.js';
 import { createBoxScore, accumulate, finalize, pickMvp } from './boxScore.js';
+import { createUltState, advanceUltState, compProfile } from './abilities.js';
 
 /**
  * @typedef MapResult
@@ -39,6 +40,8 @@ import { createBoxScore, accumulate, finalize, pickMvp } from './boxScore.js';
  * @property {Record<string, PlayerMapStat>} boxScore
  * @property {string|null} mvpPlayerId
  * @property {'A'|'B'} winner
+ * @property {{A:number,B:number}} ultUsage  rounds where each team's ult fired
+ * @property {{A:object,B:object}} abilityProfile  comp archetype counts per team
  */
 
 /** Safety cap on total rounds so an OT can never loop unboundedly. */
@@ -160,6 +163,11 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
   let econ = createEconomy();
   let box = createBoxScore([...fiveA, ...fiveB]);
 
+  // Ult economy: one meter per team, seeded from their comp.
+  let ultA = createUltState(compA);
+  let ultB = createUltState(compB);
+  const ultUsage = { A: 0, B: 0 };
+
   /** @type {RoundLog[]} */
   const rounds = [];
   const score = { A: 0, B: 0 };
@@ -173,6 +181,12 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
     // fixed A-before-B for determinism.
     decideBuy(econ.A, n, rng);
     decideBuy(econ.B, n, rng);
+
+    // Ult state from the START of this round (advance happens after).
+    const ultReadyA = ultA.ready;
+    const ultReadyB = ultB.ready;
+    if (ultReadyA) ultUsage.A += 1;
+    if (ultReadyB) ultUsage.B += 1;
 
     // Simulate the round. Alive sets are copies of the active fives; simRound
     // never mutates its inputs but we hand it fresh arrays regardless.
@@ -189,7 +203,11 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
         players,
         mapId,
         chemA,
-        chemB
+        chemB,
+        compA,
+        compB,
+        ultReadyA,
+        ultReadyB
       },
       rng
     );
@@ -212,6 +230,10 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
       killsB
     });
 
+    // Advance ult meters (consumes the ready flag, accrues new points).
+    ultA = advanceUltState(ultA, killsA, log.winnerTeam === 'A');
+    ultB = advanceUltState(ultB, killsB, log.winnerTeam === 'B');
+
     n += 1;
   }
 
@@ -230,6 +252,8 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
     rounds,
     boxScore: finalBox,
     mvpPlayerId,
-    winner
+    winner,
+    ultUsage: { A: ultUsage.A, B: ultUsage.B },
+    abilityProfile: { A: compProfile(compA), B: compProfile(compB) }
   };
 }

@@ -35,6 +35,7 @@
 
 import { BALANCE } from '../../config/balance.js';
 import { duelRating, resolveDuel } from './duel.js';
+import { compAbilityEffects } from './abilities.js';
 
 /**
  * @typedef {import('./duel.js').RoundContext} RoundContext
@@ -61,6 +62,10 @@ import { duelRating, resolveDuel } from './duel.js';
  * @property {string} mapId
  * @property {number} [chemA] team A chemistry multiplier (default 1; P12.2)
  * @property {number} [chemB] team B chemistry multiplier (default 1; P12.2)
+ * @property {string[]} [compA] team A agent composition (5 agentIds); drives ability effects
+ * @property {string[]} [compB] team B agent composition (5 agentIds); drives ability effects
+ * @property {boolean} [ultReadyA] whether team A's ult is charged this round
+ * @property {boolean} [ultReadyB] whether team B's ult is charged this round
  */
 
 /** Rounds (1-indexed) that start a half — always pistol rounds (mirror economy.js). */
@@ -200,8 +205,24 @@ export function simRound(args, rng) {
   // --- Per-side econ type / factor (pistol handled inside duelRating). -------
   const atkEconType = econTypeFor(econByTeam[atkTeam], n);
   const defEconType = econTypeFor(econByTeam[defTeam], n);
-  const atkEconFactor = econFactorFor(atkEconType);
-  const defEconFactor = econFactorFor(defEconType);
+  const baseAtkEconFactor = econFactorFor(atkEconType);
+  const baseDefEconFactor = econFactorFor(defEconType);
+
+  // --- Ability effects: map comp archetypes to bounded round multipliers. ----
+  // Comps are optional (gracefully absent in legacy callers or tests).
+  const compAtk = atkTeam === 'A' ? args.compA : args.compB;
+  const compDef = defTeam === 'A' ? args.compA : args.compB;
+  const ultReadyAtk = atkTeam === 'A' ? (args.ultReadyA || false) : (args.ultReadyB || false);
+  const ultReadyDef = defTeam === 'A' ? (args.ultReadyA || false) : (args.ultReadyB || false);
+  const abilityAtk = compAbilityEffects(compAtk, ultReadyAtk);
+  const abilityDef = compAbilityEffects(compDef, ultReadyDef);
+
+  // Multiply base econ factors by ability multipliers.
+  // atkFactor = attacker's ability boost (smokes/flashes help push site).
+  // defFactor = defender's ability boost (anchors help hold site).
+  // Ult fires as an additive bonus on top of the ability factor.
+  const atkEconFactor = baseAtkEconFactor * abilityAtk.atkFactor * (1 + abilityAtk.ultBonus);
+  const defEconFactor = baseDefEconFactor * abilityDef.defFactor * (1 + abilityDef.ultBonus);
 
   /** @type {DuelEvent[]} */
   const events = [];
@@ -311,9 +332,11 @@ export function simRound(args, rng) {
 
     // --- Trade attempt (§11.2d) ---------------------------------------------
     // The LOSING side is the victim's side. Its remaining alive players are the
-    // potential traders. p = TRADE_BASE * (avgTrading(losingSideAlive)/100).
+    // potential traders. p = (TRADE_BASE + infoBonus) * (avgTrading(losingSideAlive)/100).
+    // Info/recon agents on the victim's side raise trade odds (they see the killer).
     if (victimAlive.length > 0) {
-      const tradeP = BALANCE.TRADE_BASE * (avgTrading(victimAlive, players) / 100);
+      const infoTradeBonus = killerSide === 'atk' ? abilityDef.tradeBonus : abilityAtk.tradeBonus;
+      const tradeP = (BALANCE.TRADE_BASE + infoTradeBonus) * (avgTrading(victimAlive, players) / 100);
       if (rng.chance(tradeP)) {
         // A random alive teammate of the victim kills the killer.
         const traderId = rng.pick(victimAlive);
