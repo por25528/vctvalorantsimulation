@@ -163,3 +163,11 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Derivations must be robust to empty / early-career worlds**: guard means against
   divide-by-zero, return a structured empty shape — screens render an empty state, never crash or
   emit `NaN`.
+
+## Agent abilities — match engine (`engine/match/abilities.js`)
+
+- **Ability archetypes** are a SECOND classification layer (separate from Valorant role). Each agent maps to one of `'info'` / `'smoke'` / `'flash'` / `'anchor'` / `'duelist'` in `AGENT_ARCHETYPE` inside `abilities.js`. The mapping is authoritative; agents not listed default to no effect (graceful).
+- **`compProfile(comp)`** → archetype counts. **`compAbilityEffects(comp, ultReady)`** → `{ atkFactor, defFactor, tradeBonus, ultBonus }` multipliers applied per round in `roundSim.js`. All constants live in `BALANCE.ABILITY` (config/balance.js).
+- **Ult economy**: `createUltState(comp)` / `advanceUltState(state, kills, won)` thread through `mapSim.js`'s round loop. When `state.ready === true` at the START of a round, `ultReadyA/B` is passed to `simRound()` and the bonus fires; the advance then resets to 0. `MapResult` gains `ultUsage: {A, B}` (fire count) and `abilityProfile: {A, B}` (per-team archetype counts).
+- **Backward compatibility**: `compA`/`compB`/`ultReadyA`/`ultReadyB` are OPTIONAL in `SimRoundArgs` — existing callers that omit them get 1× multipliers (no-op). Tests assert this.
+- **Effect magnitudes**: smoke +2.5% ATK per agent, flash +1.5% ATK, anchor +2.5% DEF, info +4% trade probability, balanced comp (has smoke/flash + anchor + info) +2% on both, ult +8% econ factor. All capped at 10%. Meaningful but not dominant — comparable to the chemistry multiplier swing.
