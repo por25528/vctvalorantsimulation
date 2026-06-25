@@ -22,6 +22,7 @@ import { teamAttractiveness, seasonSuccessScore } from '../engine/career/attract
 import { revealedSeriesByEvent, seriesKey } from '../engine/career/matchdays.js';
 import { ratePlayersOverSeries } from '../engine/career/rating.js';
 import { computeRankings } from '../engine/career/ranking.js';
+import { getRevealedTraits } from '../engine/career/scouting.js';
 import { CP_TABLE } from '../config/cpTable.js';
 
 /* ----------------------------- world ----------------------------- */
@@ -886,3 +887,68 @@ const computeLeaders = memoOne((event, topN) => {
  */
 export const selectLeaders = (state, eventId, topN = 20) =>
   computeLeaders(selectEvent(state, eventId), topN);
+
+/* --------------------------- scouting --------------------------- */
+
+/**
+ * All scouting focuses the user has placed across the career.
+ * @param {object} state
+ * @returns {Array<{playerId:string, seasonIndex:number}>}
+ */
+export const selectScoutingFocuses = (state) =>
+  (state.scouting && state.scouting.focuses) || [];
+
+/**
+ * Number of seasons this player has been scouted (each focus season counts once).
+ * @param {object} state
+ * @param {string} playerId
+ * @returns {number}
+ */
+export const selectPlayerFocusCount = (state, playerId) => {
+  const focuses = selectScoutingFocuses(state);
+  return focuses.filter((f) => f.playerId === playerId).length;
+};
+
+/**
+ * How many scouting focuses have been used in the current season.
+ * @param {object} state
+ * @returns {number}
+ */
+export const selectScoutFocusesUsedThisSeason = (state) => {
+  const seasonIndex = selectSeasonIndex(state);
+  const focuses = selectScoutingFocuses(state);
+  return focuses.filter((f) => f.seasonIndex === seasonIndex).length;
+};
+
+/**
+ * Derive which traits are visible to the manager for a specific player.
+ * Uses the engine's getRevealedTraits with the career seed + accumulated focus count.
+ *
+ * @param {object} state
+ * @param {string} playerId
+ * @returns {{ known: string[], hiddenCount: number }}
+ */
+export const selectRevealedTraits = (state, playerId) => {
+  const player = state.world && state.world.players && state.world.players[playerId];
+  if (!player) return { known: [], hiddenCount: 0 };
+  const careerSeed = (state.career && state.career.seed != null) ? state.career.seed : 2026;
+  const focusSeasons = selectPlayerFocusCount(state, playerId);
+  return getRevealedTraits(player, focusSeasons, careerSeed);
+};
+
+/**
+ * All players sorted by overall desc, each annotated with their revealed-trait view.
+ * Used by the Scouting screen to list prospects across the whole world.
+ * @param {object} state
+ * @returns {Array<{player:object, known:string[], hiddenCount:number, focusSeasons:number}>}
+ */
+export const selectScoutingProspects = (state) => {
+  const players = Object.values((state.world && state.world.players) || {});
+  const careerSeed = (state.career && state.career.seed != null) ? state.career.seed : 2026;
+  const focuses = selectScoutingFocuses(state);
+  return players.map((player) => {
+    const focusSeasons = focuses.filter((f) => f.playerId === player.id).length;
+    const { known, hiddenCount } = getRevealedTraits(player, focusSeasons, careerSeed);
+    return { player, known, hiddenCount, focusSeasons };
+  }).sort((a, b) => meanOverall(b.player) - meanOverall(a.player));
+};

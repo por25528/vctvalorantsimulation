@@ -66,7 +66,15 @@ const SHAPES = {
   // eye (spoilers shown)
   eye: () => [path('M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z'), h('circle', circle(12, 12, 2.7))],
   // eye-off (spoiler-free)
-  'eye-off': () => [path('M9.5 6c.8-.3 1.6-.5 2.5-.5 6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.6'), path('M6.2 7.7A16 16 0 0 0 2.5 12S6 18.5 12 18.5c1.4 0 2.6-.3 3.7-.8'), path('M4 4l16 16')]
+  'eye-off': () => [path('M9.5 6c.8-.3 1.6-.5 2.5-.5 6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-3 3.6'), path('M6.2 7.7A16 16 0 0 0 2.5 12S6 18.5 12 18.5c1.4 0 2.6-.3 3.7-.8'), path('M4 4l16 16')],
+  // binoculars (scouting)
+  binoculars: () => [
+    h('circle', circle(7, 13, 3.5)),
+    h('circle', circle(17, 13, 3.5)),
+    path('M10.5 13h3'),
+    path('M3.5 13V8l3-3h3v3'),
+    path('M20.5 13V8l-3-3h-3v3')
+  ]
 };
 
 /** Build a stroked `<path>` child (the icon default style). */

@@ -83,9 +83,12 @@ import {
   setReveal,
   advanceReveal,
   revealToEnd,
-  resetReveal
+  resetReveal,
+  addScoutFocus,
+  resetScouting
 } from './actions.js';
-import { selectSeason } from './selectors.js';
+import { selectSeason, selectScoutFocusesUsedThisSeason, selectPlayerFocusCount, selectSeasonIndex } from './selectors.js';
+import { MAX_SCOUT_FOCUSES } from '../engine/career/scouting.js';
 
 /** Transfer-market tuning (roster bounds + user contract length). */
 const MARKET = BALANCE.CAREER.MARKET;
@@ -180,6 +183,11 @@ function buildSaveGame(store, opts = {}) {
     reveal: state.reveal && state.reveal.slotId
       ? { slotId: state.reveal.slotId, dayIndex: state.reveal.dayIndex }
       : null,
+    // Scouting focuses persist across saves so the manager's scouting history
+    // survives reloads.
+    scouting: {
+      focuses: (state.scouting && state.scouting.focuses) || []
+    },
     settings: {
       followedTeamId: state.ui.followedTeamId || null,
       spoilerFree: state.ui.spoilerFree !== false,
@@ -237,6 +245,15 @@ function hydrateSaveGame(store, saveGame) {
     }));
   } else {
     store.dispatch(resetReveal());
+  }
+
+  // Restore scouting focuses (empty for legacy pre-scouting saves).
+  store.dispatch(resetScouting());
+  const savedFocuses = (saveGame.scouting && saveGame.scouting.focuses) || [];
+  for (const f of savedFocuses) {
+    if (f && f.playerId && typeof f.seasonIndex === 'number') {
+      store.dispatch(addScoutFocus(f.playerId, f.seasonIndex));
+    }
   }
 
   // Restore viewing preferences (default spoiler-free ON for pre-v? saves).
@@ -329,6 +346,7 @@ function installCareer(store, career) {
   store.dispatch(resetEvents());
   store.dispatch(resetTransfers());
   store.dispatch(resetReveal()); // no slot is mid-reveal at the start of a career
+  store.dispatch(resetScouting()); // a fresh career starts with no scouting history
   store.dispatch(loadInbox([])); // a fresh career starts with an empty news feed
   store.dispatch(initSeasonAction(career.season));
   store.dispatch(setCareer({
@@ -977,6 +995,48 @@ export function fireCoach(store, teamId) {
   const name = team.coach.name;
   store.dispatch(setTeam(createTeam({ ...team, coach: null, id: team.id })));
   store.dispatch(pushToast('info', `Dismissed ${name}.`));
+  void autosaveCurrent(store);
+  return true;
+}
+
+/* ------------------------------------------------------------------ */
+/* scouting (P-scouting-c2)                                            */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Spend one scouting focus on a player for the current season. Focuses are
+ * capped at MAX_SCOUT_FOCUSES per season; each season-focus is idempotent
+ * (the same player can only be focused once per season). Focuses accumulate
+ * across seasons: scouting the same player three seasons in a row fully
+ * reveals all their hidden traits.
+ *
+ * @param {import('../core/store.js').Store} store
+ * @param {string} playerId
+ * @returns {boolean} true if the focus was recorded
+ */
+export function scoutPlayer(store, playerId) {
+  const state = store.getState();
+  const player = state.world && state.world.players && state.world.players[playerId];
+  if (!player) {
+    store.dispatch(pushToast('error', 'Player not found.'));
+    return false;
+  }
+  const seasonIndex = selectSeasonIndex(state);
+  const focuses = (state.scouting && state.scouting.focuses) || [];
+
+  if (focuses.some((f) => f.playerId === playerId && f.seasonIndex === seasonIndex)) {
+    store.dispatch(pushToast('info', `${player.handle || player.name} is already a scouting focus this season.`));
+    return false;
+  }
+
+  const usedThisSeason = focuses.filter((f) => f.seasonIndex === seasonIndex).length;
+  if (usedThisSeason >= MAX_SCOUT_FOCUSES) {
+    store.dispatch(pushToast('error', `Scouting capacity full — max ${MAX_SCOUT_FOCUSES} focuses per season.`));
+    return false;
+  }
+
+  store.dispatch(addScoutFocus(playerId, seasonIndex));
+  store.dispatch(pushToast('success', `Scouting ${player.handle || player.name} this season.`));
   void autosaveCurrent(store);
   return true;
 }

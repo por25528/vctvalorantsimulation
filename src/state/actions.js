@@ -22,6 +22,7 @@ import { CAREER_SET } from './slices/career.js';
 import { TRANSFERS_RECORD, TRANSFERS_RESET } from './slices/transfers.js';
 import { INBOX_APPEND, INBOX_MARK_READ, INBOX_LOAD } from './slices/inbox.js';
 import { REVEAL_SET, REVEAL_ADVANCE, REVEAL_TO_END, REVEAL_RESET } from './slices/reveal.js';
+import { SCOUTING_ADD_FOCUS, SCOUTING_RESET } from './slices/scouting.js';
 import {
   UI_NAVIGATE,
   UI_FOLLOW,
@@ -206,3 +207,17 @@ export const revealToEnd = () => ({ type: REVEAL_TO_END });
 
 /** Clear the reveal cursor (new season / fresh career). */
 export const resetReveal = () => ({ type: REVEAL_RESET });
+
+/* -------------------------- scouting ------------------------- */
+
+/**
+ * Record a scouting focus on a player for a specific season.
+ * @param {string} playerId
+ * @param {number} seasonIndex
+ */
+export const addScoutFocus = (playerId, seasonIndex) => ({ type: SCOUTING_ADD_FOCUS, playerId, seasonIndex });
+
+/**
+ * Clear all scouting focuses (used when importing a fresh save or resetting).
+ */
+export const resetScouting = () => ({ type: SCOUTING_RESET });

@@ -27,6 +27,7 @@ export const NAV_ITEMS = [
   { screen: 'news', label: 'Inbox', icon: 'inbox', glyph: '✉' },
   { screen: 'squad', label: 'Squad', icon: 'squad', glyph: '⛶' },
   { screen: 'market', label: 'Transfers', icon: 'swap', glyph: '⇄' },
+  { screen: 'scouting', label: 'Scouting', icon: 'binoculars', glyph: '⊙' },
   { screen: 'offseason', label: 'Transfer Window', icon: 'refresh', glyph: '↻' },
   { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦' },
   // Unified Tournament tab (group stage + playoff bracket) replaces the former
