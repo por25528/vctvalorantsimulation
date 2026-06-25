@@ -84,6 +84,43 @@ export function playerValue(player) {
 }
 
 /**
+ * Lineup-contribution value — how much a player improves a STARTING FIVE *right
+ * now*, as opposed to playerValue's asset/resale worth. playerValue is
+ * potential-heavy and steeply age-depreciated (right for pricing fees and resale);
+ * but for "does this player make my five better today" what matters is current
+ * on-field ability. So lineupValue is OVERALL-led: potential is only a small nudge
+ * (you field ability now, not a ceiling) and the age curve is mild (a player's
+ * `overall` already encodes most skill decline). This is what stops a proven 83-OVR
+ * veteran free agent reading below a mediocre 74-OVR starter — and so what stops the
+ * AI ignoring strong free agents while paying fees for weaker, higher-resale rookies.
+ * Pure (reads only player fields); used for upgrade/improve ranking, the makeweight
+ * drop, and the fill draw. Fees still price off playerValue (asset worth).
+ *
+ * @param {object} player
+ * @returns {number} value (>= 0)
+ */
+export function lineupValue(player) {
+  const o = overall(player);
+  const pot = num(player && player.potential, o);
+  const age = num(player && player.age, 21);
+  // Potential is a small nudge only (current ability dominates), age-discounted.
+  const upside = Math.max(0, pot - o);
+  const youth = clamp(
+    (M.VALUE_UPSIDE_AGE_ZERO - age) / (M.VALUE_UPSIDE_AGE_ZERO - M.VALUE_UPSIDE_AGE_FULL),
+    0, 1
+  );
+  let value = o + M.VALUE_LINEUP_POT_WEIGHT * upside * youth;
+  // Mild age dock (overall already encodes decline), with a high veteran floor.
+  const yearsPast = Math.max(0, age - M.VALUE_AGE_DECLINE_PIVOT);
+  const ageMult = Math.max(M.VALUE_LINEUP_AGE_MULT_MIN, 1 - M.VALUE_LINEUP_AGE_DECLINE_K * yearsPast);
+  const form = num(player && player.dynamics && player.dynamics.form, 0);
+  const morale = num(player && player.dynamics && player.dynamics.morale, 60);
+  const condition = 1 + M.VALUE_FORM_K * (form / 100) + M.VALUE_MORALE_K * ((morale - 60) / 40);
+  value = value * ageMult * Math.max(0, condition);
+  return Math.max(0, value);
+}
+
+/**
  * The fee to prise a CONTRACTED player away: a progressive premium on their value,
  * inflated by remaining contract years and the seller's prestige, capped by a
  * release clause and reduced by the buyer's coach negotiation. Free agents are
@@ -178,7 +215,8 @@ function starterToDrop(team, players, targetRole) {
   const five = roster.slice(0, 5).map((id) => players[id]).filter(Boolean);
   if (five.length === 0) return null;
   const counts = startingRoleCounts(team, players);
-  const byVal = (a, b) => playerValue(a) - playerValue(b) || idCmp(a.id, b.id);
+  // Drop the weakest CONTRIBUTOR (lineup value), not the lowest resale asset.
+  const byVal = (a, b) => lineupValue(a) - lineupValue(b) || idCmp(a.id, b.id);
   const sameRole = five.filter((p) => p.role === targetRole).sort(byVal);
   if (sameRole.length) return sameRole[0].id;
   const oversupplied = five.filter((p) => (counts[p.role] || 0) >= 2).sort(byVal);
@@ -290,11 +328,21 @@ export function runTransferMarket(world, rng, opts = {}) {
       // Prefer the better player, but heavily bias the draw toward a free agent who
       // plugs a MISSING core role, so the patched five trends role-complete (a
       // balanced Duelist/Initiator/Controller/Sentinel lineup) rather than stacking.
-      const chosen = rng.weightedPick(usable, (id) => {
+      // Weight by on-field contribution (lineupValue) so a strong free agent (incl. a
+      // proven vet) is favoured, not just a high-ceiling raw prospect.
+      const fillScore = (id) => {
         const p = players[id];
-        const base = Math.pow(Math.max(1, playerValue(p)), M.SIGN_WEIGHT_POW);
+        const base = Math.pow(Math.max(1, lineupValue(p)), M.SIGN_WEIGHT_POW);
         return need.has(p.role) ? base * M.ROLE_NEED_FILL_MULT : base;
-      });
+      };
+      // Draw only among the best-fitting candidates: over the whole pool the long tail
+      // of raw newgens dilutes the strongest free agent to a few-percent chance, so a
+      // club could sign a weak prospect while a strong same-role free agent sat unsigned.
+      // The shortlist keeps the choice strong (with a little variety among the top tier).
+      const shortlist = usable.slice()
+        .sort((a, b) => fillScore(b) - fillScore(a) || idCmp(a, b))
+        .slice(0, Math.max(1, M.FILL_SHORTLIST));
+      const chosen = rng.weightedPick(shortlist, fillScore);
       sign(team.id, chosen, 'signing');
     }
   }
@@ -396,7 +444,10 @@ export function runTransferMarket(world, rng, opts = {}) {
   function bestUpgradeBid(team) {
     const five = team.roster.slice(0, 5).map((id) => players[id]).filter(Boolean);
     if (five.length === 0) return null;
-    const worstVal = Math.min(...five.map(playerValue));
+    // Judge improvement on CURRENT contribution (lineupValue), not resale asset —
+    // so a proven veteran free agent reads as the upgrade they are, and the AI does
+    // not chase a higher-resale but weaker rookie over them.
+    const worstVal = Math.min(...five.map(lineupValue));
     const need = roleNeeds(team, players);
     const myAttract = attractOf(team.id);
     // War-chest aggression: a cash-rich club chases smaller upgrades, commits a
@@ -407,13 +458,17 @@ export function runTransferMarket(world, rng, opts = {}) {
 
     let best = null;
     let bestImprove = -Infinity;
+    // Track the best FREE-AGENT upgrade separately: a free agent is no fee and no
+    // makeweight, so we prefer it unless a contracted target is CLEARLY better.
+    let bestFa = null;
+    let bestFaImprove = -Infinity;
     for (const id of Object.keys(players)) {
       const p = players[id];
       const st = p.contract.status;
       if (st !== 'free_agent' && st !== 'active') continue;
       const onMyRoster = team.roster.indexOf(id) >= 0;
       if (onMyRoster) continue;
-      const v = playerValue(p);
+      const v = lineupValue(p);
       const roleBonus = need.has(p.role) ? TR.ROLE_NEED_BONUS : 0;
       const improve = v + roleBonus - worstVal;
       if (improve < effMargin) continue;
@@ -424,6 +479,9 @@ export function runTransferMarket(world, rng, opts = {}) {
       let fee = 0;
       let sellerId = null;
       if (!fa) {
+        // Clubs pay a FEE only for youth/prime assets, never decliners — a strong
+        // veteran is still pursued, but for FREE (above), not bought for cash.
+        if (num(p.age, 21) >= TR.FEE_MAX_AGE) continue;
         sellerId = p.contract.teamId;
         if (!sellerId || sellerId === team.id || !teams[sellerId]) continue;
         if (sellerId === protectTeamId) continue; // never sell the user's players from under them
@@ -442,6 +500,10 @@ export function runTransferMarket(world, rng, opts = {}) {
         if (wantUs <= wantThem + TR.PREFER_MARGIN) continue;
       } else {
         if (offerWage > team.budget) continue; // afford the committed wage
+        if (improve > bestFaImprove) {
+          bestFaImprove = improve;
+          bestFa = { buyerId: team.id, targetId: id, sellerId: null, fee: 0, wage: offerWage };
+        }
       }
       // among affordable, genuine upgrades, chase the biggest improvement.
       if (improve > bestImprove) {
@@ -449,8 +511,20 @@ export function runTransferMarket(world, rng, opts = {}) {
         best = { buyerId: team.id, targetId: id, sellerId, fee, wage: offerWage };
       }
     }
-    // a touch of variety: a strong, cash-rich club is keener to pull the trigger.
-    if (best && !rng.chance(clamp(0.5 + (myAttract - 50) / 120 + pressure * TR.WARCHEST_TRIGGER_BONUS, 0.2, 0.98))) return null;
+    // FREE AGENTS FIRST: never pay a fee for a target that isn't clearly better than
+    // the best free-agent alternative. If the chosen target is a paid transfer but a
+    // free agent comes within FA_PREFER_MARGIN of it, sign the free agent instead —
+    // no fee, no makeweight, money kept for moves a free agent can't cover.
+    if (best && best.fee > 0 && bestFa && bestFaImprove >= bestImprove - TR.FA_PREFER_MARGIN) {
+      best = bestFa;
+    }
+    // Pull-the-trigger: a strong, cash-rich club is keener; a FREE signing (no fee,
+    // pure upside) is keener still, so a valuable free agent is signed promptly.
+    if (best) {
+      let trigger = clamp(0.5 + (myAttract - 50) / 120 + pressure * TR.WARCHEST_TRIGGER_BONUS, 0.2, 0.98);
+      if (best.fee === 0) trigger = clamp(trigger + TR.FREE_SIGN_TRIGGER_BONUS, 0.2, 0.99);
+      if (!rng.chance(trigger)) return null;
+    }
     return best;
   }
 

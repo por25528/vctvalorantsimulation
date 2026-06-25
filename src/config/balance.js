@@ -233,11 +233,34 @@ export const BALANCE = deepFreeze({
       VALUE_AGE_MULT_MIN: 0.5, // age alone never docks more than half (experience/name floor)
       VALUE_FORM_K: 0.06, // ± this * (form/100): an in-form player is worth a touch more
       VALUE_MORALE_K: 0.04, // ± this * ((morale−60)/40): a settled, happy player worth a touch more
+      // ---- lineup-contribution value (offseason/transfers.js: lineupValue) ----
+      // playerValue above is ASSET/resale worth — potential-heavy and age-depreciated,
+      // which is right for pricing FEES (you don't pay a big fee for a decliner). But it
+      // is the WRONG yardstick for "who improves my starting five RIGHT NOW": a proven
+      // 83-overall veteran contributes 83 today, yet asset value docks them below a
+      // 74-overall rookie whose ceiling inflates their resale. Using asset value for
+      // squad decisions left strong veteran FREE AGENTS reading below mediocre starters
+      // — so they sat unsigned for seasons while clubs paid fees for higher-"value" but
+      // weaker rookies. lineupValue is OVERALL-led: potential is only a small nudge (you
+      // field current ability, not a ceiling) and the age curve is mild (overall already
+      // encodes skill decline). Used for upgrade/improve ranking, the makeweight drop,
+      // and the fill draw — so the market judges on-field help, not resale.
+      VALUE_LINEUP_POT_WEIGHT: 0.15, // upside nudge at peak youth (small: lineup ≈ current ability)
+      VALUE_LINEUP_AGE_DECLINE_K: 0.02, // mild per-year dock past VALUE_AGE_DECLINE_PIVOT (overall already encodes decline)
+      VALUE_LINEUP_AGE_MULT_MIN: 0.8, // a proven veteran stays a strong contributor (high floor)
       // ---- role-complete roster construction (offseason/transfers.js: fillRosters) ----
       // When filling a hole, a free agent that plugs a MISSING core role gets this
       // multiplicative boost in the value-weighted draw, so AI lineups trend toward a
       // balanced Duelist/Initiator/Controller/Sentinel five instead of stacking a role.
-      ROLE_NEED_FILL_MULT: 6
+      ROLE_NEED_FILL_MULT: 6,
+      // The fill draw picks proportional to value^pow, but over the WHOLE free pool the
+      // long tail of raw newgens dilutes the strongest free agent down to a few-percent
+      // chance — so a club would occasionally sign a 62-overall prospect while an
+      // 85-overall free agent of the SAME role sat unsigned. Restricting the draw to the
+      // top-N best-fitting candidates guarantees the club fills from its best available
+      // (with a little variety among that top tier), so strong free agents get signed
+      // promptly instead of being passed over for weak prospects.
+      FILL_SHORTLIST: 4
     },
     // ---- awards & all-pro (P7a, engine/career/awards.js) ----
     AWARDS: {
@@ -478,6 +501,20 @@ export const BALANCE = deepFreeze({
       BUY_BUDGET_FRACTION: 0.55, // a club will spend at most this fraction of its budget on a single fee
       ROLE_NEED_BONUS: 6, // value points added to a target that fills a missing role (smarter AI roster-building)
       PREFER_MARGIN: 4, // a player only forces a move if a suitor is this much more desirable than their current club
+
+      // ---- free-agency-first buying (offseason/transfers.js: bestUpgradeBid) ----
+      // A free agent costs no fee and no roster makeweight, so the AI must exhaust the
+      // free pool before spending. These knobs encode "sign value for free before paying
+      // for it": (1) a CONTRACTED target must beat the best free-agent upgrade by
+      // FA_PREFER_MARGIN lineup-value points to justify a fee — otherwise take the free
+      // agent; (2) clubs pay a fee only for players UNDER FEE_MAX_AGE (youth/prime
+      // assets, never decliners — a veteran still signs FREE, this gates only paid buys);
+      // (3) when the best target is a free agent the pull-the-trigger chance is lifted by
+      // FREE_SIGN_TRIGGER_BONUS so a strong free agent who fills a need is signed PROMPTLY,
+      // not stranded for seasons.
+      FA_PREFER_MARGIN: 4, // contracted (fee) target must beat the best free-agent upgrade by this to be worth a fee
+      FEE_MAX_AGE: 31, // clubs pay a transfer FEE only for players under this age (no fees for decliners)
+      FREE_SIGN_TRIGGER_BONUS: 0.4, // + this to the trigger chance when the best target is a free agent (prompt signings)
 
       // ---- war-chest spending (anti-hoarding) ----
       // Problem: strong clubs almost never clear UPGRADE_MARGIN (their worst starter
