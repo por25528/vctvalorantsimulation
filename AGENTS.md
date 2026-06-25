@@ -80,3 +80,20 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Run the app over HTTP (`npm start` → http://localhost:8000); ES modules won't load from `file://`.
 - Full `node tests/run.mjs` also runs the slow engine/season suites; for quick UI iteration import a
   single `tests/ui/*.test.mjs`'s default export and call it.
+- **Screen-local state lives in route params** (`state.ui.route.params`), set via
+  `dispatch(navigate(screen, params))` — active sort, region filter, picked event — not in
+  module/closure state, so screens stay pure and re-render-safe.
+- **Adding a screen touches four spots**: a file under `src/ui/screens/`, a `ROUTES` entry in
+  `src/ui/router.js`, a `NAV_ITEMS` entry in `src/ui/components/Sidebar.js` (each item is
+  `{screen,label,icon,glyph}` — `icon` names a shape in `components/Icon.js`; add one there if
+  missing), and (if styled) a BEM block in `styles/main.css`. `Sidebar.NAV_PARENT` maps contextual
+  (non-nav) screens onto a parent nav highlight.
+- **Heavier presentation maths belongs in a pure helper module** (e.g. `src/ui/derive.js`,
+  `src/ui/leagueStats.js` for the Stats analytics page) rather than inline in the screen — easier to
+  unit-test and reuse. Player "overall" = `overall(player)` (`engine/career/playerStats.js`, mean of
+  nine attributes); team Elo + region come from `selectTeamRatings`. Players carry no region — derive
+  it from their team (`contract.teamId` → `team.region`). Tier is `'t1'|'t2'` on teams and
+  `'t1'|'t2'|'prospect'` on players.
+- **Derivations must be robust to empty / early-career worlds**: guard means against
+  divide-by-zero, return a structured empty shape — screens render an empty state, never crash or
+  emit `NaN`.
