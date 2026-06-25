@@ -81,6 +81,10 @@ import { CHAMPIONS_FORMAT } from '../../config/formats/champions.js';
 import { CP_TABLE } from '../../config/cpTable.js';
 
 import { CALENDAR } from './calendar.js';
+import {
+  initTier2Season,
+  advanceTier2RegionalSlot
+} from './tier2/tier2Season.js';
 
 /** Map a CalendarSlot.formatId to its FormatDescriptor. */
 const FORMAT_BY_ID = Object.freeze({
@@ -187,6 +191,10 @@ export function initSeason(world, seed) {
     m2Winner: null,
     championsField: null,
     champion: null,
+    // P12.4 — Tier-2 (Challengers) season accumulator, kept SEPARATE from `events`
+    // so the T1 calendar shape (20 entries) is unchanged. Null when the world has
+    // no `tier2` namespace attached (e.g. a bare simSeason over buildWorld()).
+    tier2: world.tier2 ? initTier2Season() : null,
     complete: false
   });
 }
@@ -245,12 +253,18 @@ export function advanceSeason(state, world) {
   let m2Winner = state.m2Winner;
   let champion = state.champion;
   let championsFieldOrder = state.championsField;
+  let tier2 = state.tier2;
 
   if (slot.scope === 'regional') {
     const ran = runRegionalSlot(slot, format, world, seed, ledger);
     ledger = ran.ledger;
     regionalResultsBySlot[slot.id] = ran.resultsByRegion;
     for (const entry of ran.entries) events.push(entry);
+    // P12.4 — the four Tier-2 leagues play the SAME regional format alongside T1,
+    // in their own seed namespace (never perturbs the T1 draws above).
+    if (tier2 && world.tier2) {
+      tier2 = advanceTier2RegionalSlot(tier2, slot, format, world.tier2, seed);
+    }
   } else if (slot.type === 'masters') {
     const feeding = regionalResultsBySlot[slot.feedsFrom];
     if (!feeding) {
@@ -323,6 +337,7 @@ export function advanceSeason(state, world) {
     m2Winner,
     championsField: championsFieldOrder,
     champion,
+    tier2,
     complete
   });
 }
@@ -348,7 +363,7 @@ export function seasonToResult(state) {
     ? [champion, ...standings.filter((id) => id !== champion)]
     : standings;
 
-  return Object.freeze({
+  const result = {
     seasonId: `season-${String(seed)}`,
     seed,
     events: Object.freeze(events.slice()),
@@ -357,7 +372,16 @@ export function seasonToResult(state) {
     championsField: Object.freeze(field || []),
     champion,
     finalStandings: Object.freeze(finalStandings)
-  });
+  };
+  // P12.4 — surface the Tier-2 season (events + region standings) only when a T2
+  // world was attached, so a bare simSeason over buildWorld() is byte-identical.
+  if (state.tier2) {
+    result.tier2 = Object.freeze({
+      events: state.tier2.events,
+      ledger: state.tier2.ledger
+    });
+  }
+  return Object.freeze(result);
 }
 
 /**

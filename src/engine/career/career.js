@@ -53,6 +53,8 @@ import { applySeasonReputation, seedInitialReputation } from './reputation.js';
 import { seasonSuccessScore } from './attractiveness.js';
 import { seedCoaches, runStaff, makeCoachNegoOf } from './staff.js';
 import { driftChemistry } from './chemistry.js';
+import { attachTier2 } from './tier2/tier2World.js';
+import { runTier2Offseason } from './tier2/tier2Offseason.js';
 
 const D = BALANCE.CAREER.DYNAMICS;
 const CL = BALANCE.CAREER.CONTRACT;
@@ -78,6 +80,9 @@ export function initCareer(seed) {
   // P13: day-one prestige from roster strength, then a head coach for every club.
   world = seedInitialReputation(world);
   world = seedCoaches(world, createRng(hashSeed(seed, 'coaches-init')));
+  // P12.4: attach the Tier-2 (Challengers) sub-world LAST (the rep/coach steps only
+  // touch T1). Deterministic from `seed`; kept in a separate `world.tier2` namespace.
+  world = attachTier2(world, seed, 0);
   const season = initSeason(world, seasonSeed(seed, 0));
   return Object.freeze({
     seed,
@@ -114,10 +119,15 @@ export function advanceCareerSlot(state) {
   // resolve injuries (seeded per slot, so the same career is reproducible).
   const injRng = createRng(injurySeed(state.seed, state.seasonIndex, state.season.slotIndex));
   const evolvedWorld = applyInSeasonDynamics(state.world, newEvents, injRng);
+  // T2 carries through unchanged in-season (its players evolve only at the off-season).
+  // applyInSeasonDynamics rebuilds the T1 world and drops `tier2`, so re-attach it.
+  const worldWithT2 = state.world.tier2
+    ? Object.freeze({ ...evolvedWorld, tier2: state.world.tier2 })
+    : evolvedWorld;
 
   return Object.freeze({
     ...state,
-    world: evolvedWorld,
+    world: worldWithT2,
     season: nextSeason,
     phase: nextSeason.complete ? 'offseason' : 'inSeason'
   });
@@ -161,16 +171,28 @@ export function runCareerOffseason(state, opts = {}) {
   const { world: postWorld, report } = runOffseason(staffedWorld, osRng, {
     season: state.seasonIndex, successOf, coachNegoOf, protectTeamId: opts.protectTeamId || null
   });
-  const restedWorld = restForNewSeason(postWorld);
+
+  // P12.4 — Tier-2 off-season + cross-tier promotion, on a DEDICATED rng so the T1
+  // transition above stays byte-identical. Promotion injects the best T2 players
+  // into the T1 free-agent pool (postWorld) and relegates weak T1 free agents to T2.
+  const t2Rng = createRng(hashSeed(state.seed, 'tier2-offseason', state.seasonIndex));
+  const { t1World: t1AfterPromotion, tier2World: nextTier2, report: tier2Report } =
+    runTier2Offseason(postWorld, state.world.tier2, t2Rng, { season: state.seasonIndex });
+
+  const restedWorld = restForNewSeason(t1AfterPromotion);
+  const restedWithT2 = nextTier2
+    ? Object.freeze({ ...restedWorld, tier2: restTier2ForNewSeason(nextTier2) })
+    : restedWorld;
   const nextIndex = state.seasonIndex + 1;
 
   return Object.freeze({
     seed: state.seed,
     seasonIndex: nextIndex,
-    world: restedWorld,
-    season: initSeason(restedWorld, seasonSeed(state.seed, nextIndex)),
+    world: restedWithT2,
+    season: initSeason(restedWithT2, seasonSeed(state.seed, nextIndex)),
     history: Object.freeze([...state.history, summary]),
     offseason: report,
+    tier2Offseason: tier2Report || null,
     phase: 'inSeason'
   });
 }
@@ -378,6 +400,36 @@ function restForNewSeason(world) {
   return Object.freeze({
     leagues: world.leagues,
     teamsById: world.teamsById,
+    playersById: Object.freeze(players)
+  });
+}
+
+/**
+ * Rest the Tier-2 sub-world over the off-season: same fatigue/form/morale reset as
+ * the T1 squads, on the separate `world.tier2` namespace. Returns a fresh frozen
+ * tier2 world; the input is not mutated.
+ * @param {object} tier2World
+ * @returns {object}
+ */
+function restTier2ForNewSeason(tier2World) {
+  /** @type {Record<string, object>} */
+  const players = {};
+  for (const id of Object.keys(tier2World.playersById)) {
+    const p = tier2World.playersById[id];
+    if (p.contract && p.contract.status === 'retired') {
+      players[id] = p;
+      continue;
+    }
+    const morale = num(p.dynamics && p.dynamics.morale, D.MORALE_BASE);
+    players[id] = Object.freeze({
+      ...p,
+      dynamics: { form: 0, morale: clamp(morale + D.OFFSEASON_MORALE_REVERT * (D.MORALE_BASE - morale), 0, 100), fatigue: 0 },
+      injury: null
+    });
+  }
+  return Object.freeze({
+    leagues: tier2World.leagues,
+    teamsById: tier2World.teamsById,
     playersById: Object.freeze(players)
   });
 }
