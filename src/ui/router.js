@@ -44,6 +44,7 @@ import { Awards } from './screens/Awards.js';
 import { News } from './screens/News.js';
 import { Editor } from './screens/Editor.js';
 import { Offseason } from './screens/Offseason.js';
+import { Scouting } from './screens/Scouting.js';
 
 /**
  * Screen id -> screen render fn (CONTRACTS-UI §5).
@@ -70,6 +71,7 @@ export const ROUTES = Object.freeze({
   saves: SaveLoadScreen,
   squad: Squad,
   market: TransferMarket,
+  scouting: Scouting,
   development: PlayerDevelopment,
   awards: Awards,
   news: News,
