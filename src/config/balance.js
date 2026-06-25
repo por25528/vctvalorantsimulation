@@ -554,5 +554,33 @@ export const BALANCE = deepFreeze({
       WARCHEST_PASSES_BONUS: 2, // + round(this * pressure) extra buy passes for a flush club
       OVERPAY_MAX: 1.45 // a flush club offers up to this * marketWage to out-bid rivals (≤ ATTRACT.WAGE_RATIO_CAP)
     }
+  },
+
+  // ============================ ABILITY EFFECTS (agent abilities) ============================
+  // Per-agent ability archetypes shift round/duel outcomes in a deterministic, bounded way.
+  // All randomness still flows through the injected rng; these are pure multipliers.
+  // Archetypes: 'info' | 'smoke' | 'flash' | 'anchor' | 'duelist'
+  //   info   (Sova, Fade, Cypher)          → trade probability boost for that team
+  //   smoke  (all Controllers)              → attacker econ-factor lift
+  //   flash  (Breach, Skye, KAY/O, etc.)   → attacker econ-factor lift (entry advantage)
+  //   anchor (Killjoy, Sage, Chamber, etc.) → defender econ-factor lift
+  //   duelist                               → no special multiplier (already in duelRating)
+  // Balanced comp bonus: a comp with smokes/flashes AND an anchor AND an info agent gets
+  // an extra multiplier (both ATK and DEF) rewarding well-rounded compositions.
+  ABILITY: {
+    SMOKE_ATK_BOOST: 0.025,     // ATK econ-factor lift per smoke/Controller agent
+    FLASH_ATK_BOOST: 0.015,     // ATK econ-factor lift per flash Initiator
+    ANCHOR_DEF_BOOST: 0.025,    // DEF econ-factor lift per anchor Sentinel
+    INFO_TRADE_BONUS: 0.04,     // trade-probability bonus per info agent (added to TRADE_BASE)
+    BALANCED_COMP_BONUS: 0.02,  // bonus applied to BOTH ATK and DEF when comp has full coverage
+    MAX_ATK_BOOST: 0.10,        // cap on total ATK ability boost so stacking can't dominate
+    MAX_DEF_BOOST: 0.10,        // cap on total DEF ability boost
+    // Ult economy: points accrue per kill/win; when the threshold is hit, the NEXT round
+    // gets an ULT_BOOST to the team's econ factor, then the meter resets.
+    ULT_POINTS_PER_KILL: 1,
+    ULT_POINTS_PER_WIN: 1,
+    ULT_THRESHOLD: 8,           // points to charge a standard ult
+    ULT_THRESHOLD_LOW: 6,       // lower threshold for duelist-heavy comps (cheaper ults)
+    ULT_BOOST: 0.08             // econ-factor multiplier boost when ult fires
   }
 });
