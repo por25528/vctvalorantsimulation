@@ -28,6 +28,22 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   condition (so the AI doesn't overpay fees for 30+ decliners). `transferFee` prices contracted
   players; `fillRosters` biases the value-weighted draw toward MISSING core roles
   (`MARKET.ROLE_NEED_FILL_MULT`) so AI fives trend role-complete.
+- **Two distinct notions of worth — do not conflate them.** `playerValue` is ASSET/resale worth
+  (potential-heavy, age-depreciated) and is used ONLY for pricing fees. `lineupValue` is CURRENT
+  on-field contribution (overall-led, small potential nudge, mild age curve) and is what every
+  SQUAD decision judges on — `bestUpgradeBid` improvement, the makeweight drop, and the fill draw.
+  This split is load-bearing: judging upgrades on resale value made a 74-ovr high-ceiling rookie
+  out-rank a proven 83-ovr veteran, so strong veteran FREE AGENTS sat unsigned while clubs paid
+  fees for weaker rookies. If you add a roster/upgrade decision, use `lineupValue`, not `playerValue`.
+- **Free-agency-first buying** (`bestUpgradeBid`, `TRANSFER.{FA_PREFER_MARGIN,FEE_MAX_AGE,FREE_SIGN_TRIGGER_BONUS}`):
+  a club never pays a fee for a target that isn't clearly better than the best free-agent upgrade
+  (take the free agent instead); fees are paid only for players under `FEE_MAX_AGE` (a strong vet
+  still arrives FREE, never bought); and a free signing gets a higher pull-the-trigger chance so
+  valuable free agents are signed promptly. The fill draw is restricted to a `MARKET.FILL_SHORTLIST`
+  of best-fitting candidates so the long tail of raw newgens can't dilute a strong same-role free
+  agent down to a few-percent chance (which left strong FAs stranded while clubs fielded raw youth).
+  NOTE: residual stranding of a strong free agent in an OVER-SUPPLIED role (e.g. too many Initiators)
+  is a talent-DISTRIBUTION matter (newgen role weights), not a transfer-logic bug.
 - `offseason/contracts.js` — `salaryFor` (must stay monotonic non-decreasing in overall) and
   `contractLengthFor(player, rng)` (age-aware term, always within `CONTRACT.LENGTH_MIN..MAX`).
 - Supporting: `attractiveness.js` (team pull + a player's `signingDesirability`, resolves bidding

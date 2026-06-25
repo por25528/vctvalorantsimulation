@@ -8,7 +8,7 @@
  */
 
 import { assert, section } from '../_assert.mjs';
-import { runTransferMarket, playerValue, transferFee } from '../../src/engine/career/offseason/transfers.js';
+import { runTransferMarket, playerValue, lineupValue, transferFee } from '../../src/engine/career/offseason/transfers.js';
 import { createPlayer } from '../../src/domain/player.js';
 import { createTeam } from '../../src/domain/team.js';
 import { createRng } from '../../src/core/rng.js';
@@ -174,5 +174,119 @@ export default async function run() {
   for (let s = 0; s < 40; s += 1) {
     const prot = runTransferMarket(mkBuyWorld(), createRng(s), { season: 5, protectTeamId: 'poor' });
     assert(!prot.moves.some((m) => m.kind === 'transfer' && m.fromTeamId === 'poor'), `no player sold out of the protected club (seed ${s})`);
+  }
+
+  // A player with controllable overall / age / role / potential (the realism fix
+  // turns on age & role, which the basic mk() above does not vary).
+  const mkR = (id, ovr, { teamId = null, status = 'free_agent', potential, expires = 8, age = 24, role = 'Duelist' } = {}) => {
+    const attributes = {};
+    for (const k of ['aim', 'movement', 'reaction', 'composure', 'consistency', 'gameSense', 'utility', 'trading', 'igl']) attributes[k] = ovr;
+    return createPlayer({
+      id, name: id, role, age, potential: potential != null ? potential : ovr,
+      attributes, contract: { teamId, salary: status === 'active' ? 80000 : 0, expires, status }
+    });
+  };
+
+  section('lineupValue — current contribution, not resale: a strong veteran out-ranks a high-potential rookie');
+  // The bug: playerValue is asset/resale worth (potential-heavy, age-depreciated), so a
+  // 74-overall rookie out-VALUES an 83-overall veteran — and the AI judged squad upgrades
+  // on it, leaving strong veteran free agents unsigned. lineupValue judges CURRENT on-field
+  // help, so the veteran (who is simply better today) correctly ranks above the rookie.
+  const vet83 = mkR('vet83', 83, { age: 31, potential: 83 });
+  const rook74 = mkR('rook74', 74, { age: 19, potential: 84 });
+  assert(playerValue(rook74) > playerValue(vet83), 'playerValue (resale) ranks the high-ceiling rookie above the veteran (the trap)');
+  assert(lineupValue(vet83) > lineupValue(rook74), 'lineupValue (current contribution) ranks the stronger veteran above the rookie');
+  assert(lineupValue(vet83) >= 0 && lineupValue(rook74) >= 0, 'lineupValue is never negative');
+
+  section('runTransferMarket — FREE AGENTS FIRST: a club signs a strong free agent over paying a fee for a worse rookie');
+  // One real upgrade slot (a weak Duelist). A free 83-overall Duelist and a CONTRACTED
+  // 74-overall Duelist (a fee) both fit it. The AI must take the free, better player and
+  // must NOT pay a fee for the clearly worse rookie.
+  const faVsFeeWorld = () => worldOf(
+    [
+      {
+        id: 'buyer', reputation: 75, budget: 9000000, players: [
+          mkR('bd1', 70, { teamId: 'buyer', status: 'active', age: 27, role: 'Duelist' }), // the weak slot
+          mkR('bd2', 82, { teamId: 'buyer', status: 'active', age: 25, role: 'Initiator' }),
+          mkR('bd3', 82, { teamId: 'buyer', status: 'active', age: 25, role: 'Controller' }),
+          mkR('bd4', 82, { teamId: 'buyer', status: 'active', age: 25, role: 'Sentinel' }),
+          mkR('bd5', 82, { teamId: 'buyer', status: 'active', age: 25, role: 'Initiator' })
+        ]
+      },
+      {
+        id: 'src', reputation: 55, budget: 1000000, players: [
+          mkR('rook', 74, { teamId: 'src', status: 'active', age: 19, potential: 84, expires: 7, role: 'Duelist' }),
+          mkR('sd2', 76, { teamId: 'src', status: 'active', age: 24, role: 'Initiator' }),
+          mkR('sd3', 76, { teamId: 'src', status: 'active', age: 24, role: 'Controller' }),
+          mkR('sd4', 76, { teamId: 'src', status: 'active', age: 24, role: 'Sentinel' }),
+          mkR('sd5', 76, { teamId: 'src', status: 'active', age: 24, role: 'Initiator' })
+        ]
+      }
+    ],
+    [mkR('vetFA', 83, { age: 31, potential: 83, role: 'Duelist' })]
+  );
+  let faSigned = 0;
+  let rookFeeBought = 0;
+  for (let s = 0; s < 40; s += 1) {
+    const out = runTransferMarket(faVsFeeWorld(), createRng(s), { season: 5 });
+    if (out.moves.some((m) => m.playerId === 'vetFA' && m.toTeamId === 'buyer')) faSigned += 1;
+    if (out.moves.some((m) => m.kind === 'transfer' && m.playerId === 'rook' && m.toTeamId === 'buyer' && m.fee > 0)) rookFeeBought += 1;
+  }
+  assert(faSigned >= 36, `the club signs the free 83-overall veteran almost every window (got ${faSigned}/40)`);
+  assert(rookFeeBought === 0, `the club never pays a fee for the worse 74-overall rookie when the better free agent fits (got ${rookFeeBought})`);
+
+  section('runTransferMarket — a strong free agent who fills a need is signed PROMPTLY, not stranded');
+  // A club whose worst starter is far below an available strong free agent should sign
+  // them in the very next window — every time.
+  const strandWorld = () => worldOf(
+    [
+      {
+        id: 'needy', reputation: 65, budget: 5000000, players: [
+          mkR('n1', 64, { teamId: 'needy', status: 'active', age: 28, role: 'Duelist' }),
+          mkR('n2', 72, { teamId: 'needy', status: 'active', age: 25, role: 'Initiator' }),
+          mkR('n3', 72, { teamId: 'needy', status: 'active', age: 25, role: 'Controller' }),
+          mkR('n4', 72, { teamId: 'needy', status: 'active', age: 25, role: 'Sentinel' }),
+          mkR('n5', 72, { teamId: 'needy', status: 'active', age: 25, role: 'Initiator' })
+        ]
+      }
+    ],
+    [mkR('star', 84, { age: 27, potential: 86, role: 'Duelist' }), mkR('filler', 60, { age: 22, role: 'Controller' })]
+  );
+  let strongSigned = 0;
+  for (let s = 0; s < 40; s += 1) {
+    const out = runTransferMarket(strandWorld(), createRng(s), { season: 5 });
+    if (out.moves.some((m) => m.playerId === 'star' && m.toTeamId === 'needy')) strongSigned += 1;
+  }
+  assert(strongSigned >= 38, `the strong free agent is signed promptly across windows (got ${strongSigned}/40)`);
+
+  section('runTransferMarket — clubs do NOT pay transfer fees for over-the-hill players');
+  // Even an affordable, contracted veteran is never BOUGHT for a fee — clubs pay fees for
+  // youth/prime assets and let a strong veteran arrive on a FREE transfer instead.
+  const oldStarWorld = () => worldOf(
+    [
+      {
+        id: 'rich', reputation: 80, budget: 9000000, players: [
+          mkR('g1', 66, { teamId: 'rich', status: 'active', age: 27, role: 'Duelist' }),
+          mkR('g2', 70, { teamId: 'rich', status: 'active', age: 25, role: 'Initiator' }),
+          mkR('g3', 70, { teamId: 'rich', status: 'active', age: 25, role: 'Controller' }),
+          mkR('g4', 70, { teamId: 'rich', status: 'active', age: 25, role: 'Sentinel' }),
+          mkR('g5', 70, { teamId: 'rich', status: 'active', age: 25, role: 'Initiator' })
+        ]
+      },
+      {
+        id: 'seller', reputation: 45, budget: 1000000, players: [
+          mkR('oldstar', 82, { teamId: 'seller', status: 'active', age: 34, expires: 8, role: 'Duelist' }),
+          mkR('e2', 74, { teamId: 'seller', status: 'active', age: 24, role: 'Initiator' }),
+          mkR('e3', 74, { teamId: 'seller', status: 'active', age: 24, role: 'Controller' }),
+          mkR('e4', 74, { teamId: 'seller', status: 'active', age: 24, role: 'Sentinel' }),
+          mkR('e5', 74, { teamId: 'seller', status: 'active', age: 24, role: 'Initiator' })
+        ]
+      }
+    ],
+    []
+  );
+  for (let s = 0; s < 40; s += 1) {
+    const out = runTransferMarket(oldStarWorld(), createRng(s), { season: 5 });
+    assert(!out.moves.some((m) => m.kind === 'transfer' && m.playerId === 'oldstar' && m.fee > 0), `no fee paid for the 34-yo veteran (seed ${s})`);
   }
 }
