@@ -74,7 +74,9 @@ const SHAPES = {
     path('M10.5 13h3'),
     path('M3.5 13V8l3-3h3v3'),
     path('M20.5 13V8l-3-3h-3v3')
-  ]
+  ],
+  // finance / wallet (Finances screen)
+  finance: () => [path('M12 4v16'), path('M16 8.5H10a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8')]
 };
 
 /** Build a stroked `<path>` child (the icon default style). */

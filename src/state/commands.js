@@ -953,6 +953,73 @@ export function buyPlayer(store, playerId) {
 }
 
 /**
+ * Sell a rostered player to an AI club. The engine picks the richest willing
+ * buyer deterministically (most budget → ties broken by teamId). The user's
+ * club receives the transfer fee; the buyer pays it and carries the wage.
+ * Refused if the club would drop below MIN_ROSTER or no team can afford it.
+ *
+ * @param {import('../core/store.js').Store} store
+ * @param {string} playerId
+ * @returns {boolean}
+ */
+export function sellPlayer(store, playerId) {
+  const state = store.getState();
+  const tid = state.ui.followedTeamId;
+  const team = tid ? state.world.teams[tid] : null;
+  const player = state.world.players[playerId];
+  if (!team) { store.dispatch(pushToast('error', 'No team selected.')); return false; }
+  if (!player) { store.dispatch(pushToast('error', 'Player not found.')); return false; }
+  const label = player.handle || player.name || playerId;
+  const c = player.contract;
+  if (!c || c.status !== 'active' || c.teamId !== tid) {
+    store.dispatch(pushToast('error', `${label} is not on your active roster.`));
+    return false;
+  }
+  if ((team.roster || []).length <= MARKET.MIN_ROSTER) {
+    store.dispatch(pushToast('error', `Can't sell — ${team.name} can't drop below ${MARKET.MIN_ROSTER}.`));
+    return false;
+  }
+  const season = currentSeasonIndex(store);
+  const nego = team.coach ? team.coach.negotiation : 0;
+  const fee = transferFee(player, team, { season, coachNego: nego });
+  const wage = salaryFor(player);
+  const floor = BALANCE.CAREER.ECONOMY.BUDGET_FLOOR;
+
+  // Find the richest team that can afford the fee+wage and still has roster room.
+  // Sort by teamId for a fully-deterministic tiebreak before taking the max-budget.
+  const allTeams = state.world.teams;
+  let buyer = null;
+  let bestBudget = -1;
+  for (const id of Object.keys(allTeams).sort()) {
+    if (id === tid) continue;
+    const t = allTeams[id];
+    const tBudget = Number(t.budget) || 0;
+    if ((t.roster || []).length >= MARKET.MAX_ROSTER) continue;
+    if (tBudget - fee < floor) continue;
+    if (tBudget - fee < wage) continue;
+    if (tBudget > bestBudget) { bestBudget = tBudget; buyer = t; }
+  }
+  if (!buyer) {
+    store.dispatch(pushToast('error', `No team can afford ${label} right now.`));
+    return false;
+  }
+
+  // User's club: remove player, bank the fee.
+  const sellerRoster = (team.roster || []).filter((id) => id !== playerId);
+  store.dispatch(setTeam(Object.freeze({ ...team, roster: Object.freeze(sellerRoster), budget: Math.round((Number(team.budget) || 0) + fee) })));
+
+  // Buying AI club: add player on a fresh contract, pay the fee.
+  const buyerRoster = [...(buyer.roster || []), playerId];
+  store.dispatch(setPlayer(withContract(player, { teamId: buyer.id, salary: wage, expires: season + MARKET.USER_SIGN_LENGTH, status: 'active' })));
+  store.dispatch(setTeam(Object.freeze({ ...buyer, roster: Object.freeze(buyerRoster), budget: Math.round((Number(buyer.budget) || 0) - fee) })));
+
+  store.dispatch(recordTransfer({ playerId, fromTeamId: tid, toTeamId: buyer.id, fee, salary: wage, kind: 'transfer', name: label }));
+  store.dispatch(pushToast('success', `Sold ${label} to ${buyer.name} for $${Math.round(fee / 1000)}k.`));
+  void autosaveCurrent(store);
+  return true;
+}
+
+/**
  * Hire a head coach / GM for a team (defaults to the followed team). Generates a
  * candidate (quality biased by club reputation), gated by the budget covering the
  * coach's wage. A better `negotiation` rating means cheaper future transfers.

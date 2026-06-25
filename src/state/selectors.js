@@ -285,6 +285,44 @@ export const selectTeamFinances = (state, teamId) => {
   return { budget: Number(team.budget) || 0, seasonPrize, sponsor, wageBill: wages, net: seasonPrize + sponsor - wages };
 };
 
+/**
+ * Per-player salary breakdown for a team's roster, sorted by salary descending.
+ * @param {object} state @param {string} teamId
+ * @returns {Array<{player:object, salary:number, expires:number}>}
+ */
+export const selectPayrollBreakdown = (state, teamId) => {
+  const team = state.world.teams[teamId];
+  if (!team || !Array.isArray(team.roster)) return [];
+  return team.roster
+    .map((id) => {
+      const p = state.world.players[id];
+      if (!p) return null;
+      const salary = (p.contract && typeof p.contract.salary === 'number') ? p.contract.salary : 0;
+      const expires = (p.contract && typeof p.contract.expires === 'number') ? p.contract.expires : 0;
+      return { player: p, salary, expires };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.salary - a.salary || (a.player.id < b.player.id ? -1 : 1));
+};
+
+/**
+ * Transfer-window balance for the followed team: fees received from sales,
+ * fees spent on purchases, and net. Reads from the open-window transfer log.
+ * @param {object} state @param {string} teamId
+ * @returns {{received:number, spent:number, net:number}}
+ */
+export const selectTransferBalance = (state, teamId) => {
+  const moves = (state.transfers && state.transfers.moves) || [];
+  let received = 0;
+  let spent = 0;
+  for (const m of moves) {
+    if (!m || m.kind !== 'transfer' || typeof m.fee !== 'number') continue;
+    if (m.fromTeamId === teamId) received += m.fee;
+    if (m.toTeamId === teamId) spent += m.fee;
+  }
+  return { received, spent, net: received - spent };
+};
+
 /* ----------------------------- awards ---------------------------- */
 
 /**
