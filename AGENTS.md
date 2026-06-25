@@ -83,6 +83,39 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   link still resolves) but are no longer in the nav. App-internal deep links (`openEvent` in
   `state/commands.js`, Calendar, HomeInbox) navigate to `'tournament'` with a `view` param.
 
+## Tier 2 / Challengers ecosystem (`engine/career/tier2/*`)
+
+- **T2 lives in a SEPARATE `world.tier2` namespace**, never folded into the
+  top-level `teamsById`/`playersById`. This is load-bearing: many tests pin the T1
+  world at exactly 48 teams / 240 players / 4 region leagues (`season.test`,
+  `stateSeason`/`state` UI tests, `screen-rating`, `talent-pool`), and `buildWorld()`
+  is left byte-identical. `world.tier2 = { leagues, teamsById, playersById }` is a
+  parallel 48-team / 240-player division (12 clubs/region — sized to the regional
+  Kickoff/Stage format) attached by `tier2World.attachTier2(world, seed)`.
+- **T1 stays byte-identical whether or not T2 is attached.** Every T2 draw uses its
+  own seed namespace: the build is `hashSeed(seed, 'tier2-build')`, the in-season sim
+  is `hashSeed(seed, slotId, region, 't2')`, the off-season is `hashSeed(seed,
+  'tier2-offseason', idx)`. `tests/unit/tier2.test.mjs` asserts `simSeason(withT2)`
+  reproduces the T1 events of `simSeason(plain)` exactly.
+- **Where T2 is threaded:** `season.js` carries a `state.tier2` accumulator SEPARATE
+  from `state.events` (so the T1 calendar stays 20 entries) and runs each region's T2
+  league through the same `simEvent` on every REGIONAL slot. `career.js` attaches T2
+  in `initCareer`, re-attaches it after `applyInSeasonDynamics`/`restForNewSeason`
+  (both rebuild the T1 world and DROP `tier2`), and runs `runTier2Offseason` after the
+  T1 off-season. T2 players evolve only at the off-season (static dynamics in-season).
+- **Promotion pipeline** (`tier2Offseason.runTier2Offseason`): strong T2 players
+  (overall ≥ `PROMOTE_OVERALL_MIN` OR potential ≥ `PROMOTE_POTENTIAL_MIN`) are moved
+  into the T1 free-agent pool (tier→'t1', `status:'free_agent'`) where the T1 market
+  signs them next window; weak surplus T1 free agents fall to T2. It reuses the T1
+  `developPlayer`/`decideRetirement`/`generateNewgens` so curves are consistent. Knobs
+  in `BALANCE.CAREER.TIER2`. ~8 promote + 8 relegate per off-season by default.
+- **UI caveat:** the store world-slice bridge (`commands.js` `worldToSlice`/
+  `sliceToWorld`) only carries `{leagues, teams, players}`, so a career driven through
+  the UI store gracefully DROPS `tier2` (no crash; T2 simply doesn't simulate there).
+  T2 is fully exercised by the headless engine path (`simCareer`, `tier2.test.mjs`).
+  Wiring T2 through the UI/persistence would mean touching the world reducer, slice
+  mappers, serializer and save schema — out of scope for the engine build.
+
 ## Build / test / run
 
 - No build step. Run the app: `node scripts/serve.mjs` (or open `index.html`).

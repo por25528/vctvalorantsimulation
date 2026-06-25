@@ -366,22 +366,43 @@ export const BALANCE = deepFreeze({
       ASSIGN_CHANCE: 0.55, // P(a newgen gets at least one trait)
       ASSIGN_SECOND_CHANCE: 0.25 // P(a second, distinct trait given the first)
     },
-    // ---- academy / prospect pool (P12.4, engine/career/tier2/prospects.js) ----
-    PROSPECTS: {
-      POOL_TARGET: 120, // desired standing size of the prospect pool
-      INTAKE_PER_OFFSEASON: 40, // fresh prospects minted each off-season
-      SCOUT_KNOWLEDGE_GAIN: 22, // scouting knowledge gained per off-season in the pool
-      MAX_AGE_IN_POOL: 22, // prospects older than this without a deal fade out
-      HIDDEN_POT_FUZZ: 14 // ± width of a fresh prospect's revealed potential band
-    },
-    // ---- abstracted Tier 2 (P12.4, engine/career/tier2/tier2Sim.js) ----
+    // ---- Tier 2 / Challengers ecosystem (engine/career/tier2/*) ----
+    // A REAL, fully-simulated second division: each region fields TEAMS_PER_REGION
+    // T2 clubs (sized to the regional format — two groups of 6 → an 8-team playoff)
+    // that play the same Kickoff/Stage events through the format engine, in a
+    // SEPARATE world.tier2 namespace so the franchised T1 league (and every existing
+    // determinism/count test) stays byte-identical. Determinism flows from a fixed
+    // hashSeed off the career seed — no wall-clock, no unseeded rng.
     TIER2: {
-      TEAMS_PER_REGION: 10, // abstracted T2 teams simulated per region
+      TEAMS_PER_REGION: 12, // T2 clubs per region (matches the 12-team regional format)
       ROSTER_SIZE: 5,
-      MATCH_VARIANCE: 9, // logistic scale for the cheap results-only T2 model
-      PROMOTE_PER_REGION: 1, // top T2 teams whose stars enter the T1 FA pool each year
-      PROMOTE_PLAYERS: 2, // players promoted from each ascending team
-      STAT_NOISE: 0.18 // spread on synthetic per-player T2 stat lines
+      // ---- generated-roster quality / age curve (tier2World.js) ----
+      // T2 sits a clear step below T1 (authored T1 overall ≈ 79, ceiling ≈ 85): a
+      // generated T2 player centres well below that. Challengers is a MIX — young
+      // prospects climbing toward T1 plus veteran journeymen who never made (or
+      // dropped out of) the top flight — so the age band is wide and youth-skewed.
+      OVR_MEAN: 66, OVR_STD: 5.5, OVR_MIN: 50, OVR_MAX: 80,
+      AGE_MIN: 17, AGE_MAX: 28,
+      AGE_MEAN: 20.5, AGE_STD: 3.2,
+      // Upside: a young T2 player carries headroom toward a T1-capable ceiling; the
+      // headroom shrinks linearly to ~0 by POT_HEADROOM_REF_AGE (a finished vet).
+      POT_HEADROOM_MAX: 18, // a 17-yo's ceiling sits up to this far above current overall
+      POT_HEADROOM_REF_AGE: 26, // headroom runs out by this age
+      POT_MAX: 88, // a T2 prospect's ceiling never exceeds this (true elites are rare)
+      ATTR_NOISE: 3.5, // per-attribute gaussian spread around the role-shaped base
+      // ---- yearly T2 youth intake (tier2Offseason.js) ----
+      NEWGEN_PER_OFFSEASON: 16, // fresh 16–19yo prospects minted into the T2 FA pool each off-season
+      NEWGEN_BUFFER: 6, // spare prospects beyond known holes (keeps the fill pool deep)
+      FADE_AGE: 23, // an UNSIGNED T2 free agent past this age has washed out of the scene and is dropped (bounds the live pool)
+      // ---- promotion / relegation pipeline (tier2Offseason.js: runPromotion) ----
+      // Strong T2 players rise into the T1 free-agent pool (where the T1 market signs
+      // them next window); weak surplus T1 free agents fall to T2. Counts are modest
+      // so the flow is a trickle of genuine talent, not a churn that destabilises T1.
+      PROMOTE_PER_REGION: 2, // strongest eligible T2 players promoted to the T1 FA pool / region / yr
+      PROMOTE_OVERALL_MIN: 72, // a T2 player is promotable once their overall reaches this …
+      PROMOTE_POTENTIAL_MIN: 79, // … OR they carry at least this potential (a raw, high-ceiling prospect)
+      RELEGATE_PER_REGION: 2, // weakest surplus T1 free agents dropped to T2 / region / yr
+      RELEGATE_OVERALL_MAX: 67 // only unrostered T1 free agents at/below this overall relegate
     },
     // ---- coaches & staff (P12.5 + P13 transfer-coach, engine/career/staff.js) ----
     STAFF: {
