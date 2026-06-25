@@ -56,11 +56,7 @@ export function StandingsScreen(state, dispatch) {
   const event = eventId ? selectEvent(state, eventId) : null;
   const entry = events.find((e) => e.eventId === eventId) || null;
 
-  const followed = selectFollowedTeam(state);
-  const followedId = followed ? followed.id : null;
-
   const onPick = (eid) => dispatch(navigate('standings', { eventId: eid }));
-  const goTeam = (teamId) => dispatch(navigate('team', { teamId, eventId }));
 
   if (!event) {
     return h(
@@ -71,11 +67,6 @@ export function StandingsScreen(state, dispatch) {
       h('p', { class: 'screen__empty' }, 'No event has been played yet. Hit Continue to play one.')
     );
   }
-
-  const rawGroups = groupStagesOf(event);
-  const groups = rawGroups.map((g) => groupSection(state, eventId, g, followedId, goTeam));
-  const qualSummary = qualificationSummary(state, eventId, rawGroups, followedId, goTeam);
-  const placements = placementsSection(state, eventId, followedId, goTeam);
 
   return h(
     'section',
@@ -91,10 +82,34 @@ export function StandingsScreen(state, dispatch) {
       )
     ),
     EventPicker({ events, activeEventId: eventId, onPick }),
-    qualSummary,
-    h('div', { class: 'standings__groups' }, ...groups),
-    placements
+    ...standingsContent(state, dispatch, eventId)
   );
+}
+
+/**
+ * The group-stage body for a resolved event: qualification picture, the group
+ * tables, and the final placements. Returns an array of VNodes (no outer screen
+ * chrome, title, or EventPicker), so it can be embedded by either the standalone
+ * {@link StandingsScreen} or the unified Tournament screen. Assumes `eventId`
+ * names a played event.
+ *
+ * @param {object} state
+ * @param {(action:object)=>void} dispatch
+ * @param {string} eventId
+ * @returns {Array<*>} VNodes (some entries may be null)
+ */
+export function standingsContent(state, dispatch, eventId) {
+  const event = selectEvent(state, eventId);
+  const followed = selectFollowedTeam(state);
+  const followedId = followed ? followed.id : null;
+  const goTeam = (teamId) => dispatch(navigate('team', { teamId, eventId }));
+
+  const rawGroups = groupStagesOf(event);
+  const groups = rawGroups.map((g) => groupSection(state, eventId, g, followedId, goTeam));
+  const qualSummary = qualificationSummary(state, eventId, rawGroups, followedId, goTeam);
+  const placements = placementsSection(state, eventId, followedId, goTeam);
+
+  return [qualSummary, h('div', { class: 'standings__groups' }, ...groups), placements];
 }
 
 /**

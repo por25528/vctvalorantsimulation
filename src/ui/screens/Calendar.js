@@ -80,7 +80,7 @@ export function Calendar(state, dispatch, store) {
     if (store) return openEvent(store, slotId, region || undefined);
     if (dispatch) {
       const eventId = region ? `${slotId}-${region}` : slotId;
-      return dispatch(navigate('standings', { slotId, region: region || null, eventId }));
+      return dispatch(navigate('tournament', { slotId, region: region || null, eventId, view: 'standings' }));
     }
     return undefined;
   };

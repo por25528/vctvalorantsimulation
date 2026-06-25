@@ -50,6 +50,23 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Newgen stat lines are role-SHAPED**, not flat: `newgen.js` re-centres `domain/player.js`'s `roleProfile(role)` to zero mean and adds it to `baseOverall`, so a generated Duelist is aim-heavy/igl-light (matching authored players and what `development.js` preserves) while OVERALL still equals `baseOverall` (calibration untouched).
 - **Validate the OUTCOME, not just the code.** `node scripts/probe-newgen.mjs [seed] [seasons]` prints the seed-world demographics, a large newgen quality/role histogram, and long-run pool health (rostered overall mean/p90/max, active-pool size, per-role counts) per season — run it across a few seeds to confirm stability before changing any NEWGEN/AGING constant. `tests/unit/talent-pool.test.mjs` encodes the resulting invariants (pyramid shape, role demographics/identity, multi-season stability, no role drought, bounded pool, determinism).
 
+## UI shell — screens & routing
+
+- Screens are pure `(state, dispatch[, store]) => VNode`. The router (`ui/router.js`) maps a
+  `screen` id to a render fn via `ROUTES`; `ui/components/Sidebar.js` `NAV_ITEMS` is the primary
+  nav, and `NAV_PARENT` maps contextual/legacy route ids to the nav item that should highlight.
+- **Tournament unifies group stage + playoffs.** The single `tournament` nav item is the entry
+  point for an event; `ui/screens/Tournament.js` renders shared chrome (title + `EventPicker` +
+  Group Stage/Playoffs sub-tabs) and switches body on the `view` route param
+  (`'standings'` default | `'bracket'`). The bodies are reused verbatim from the standalone
+  screens via the exported `standingsContent(state, dispatch, eventId)` and
+  `bracketContent(state, dispatch, store, eventId)` builders — content-only (no outer
+  `<section>`/title/picker), so `StandingsScreen`/`BracketScreen` and `TournamentScreen` all share
+  one source of truth. When changing standings/bracket markup, edit the `*Content` builder.
+- The legacy `standings`/`bracket` route ids stay registered in `ROUTES` (so any in-flight deep
+  link still resolves) but are no longer in the nav. App-internal deep links (`openEvent` in
+  `state/commands.js`, Calendar, HomeInbox) navigate to `'tournament'` with a `view` param.
+
 ## Build / test / run
 
 - No build step. Run the app: `node scripts/serve.mjs` (or open `index.html`).

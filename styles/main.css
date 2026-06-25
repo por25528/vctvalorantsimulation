@@ -1210,6 +1210,39 @@ button {
 .editor__actions { display: flex; flex-wrap: wrap; gap: var(--sp-2); margin-top: var(--sp-4); }
 .editor__injury { color: var(--loss); font-size: var(--fs-sm); margin-top: var(--sp-2); }
 
+/* ---- Tournament sub-tabs (Group Stage ↔ Playoffs) ---- */
+.tournament__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0;
+  padding-bottom: var(--sp-1);
+  border-bottom: 1px solid var(--border);
+}
+.tournament__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-bottom: 2px solid transparent;
+  border-radius: var(--r-2) var(--r-2) 0 0;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+}
+.tournament__tab:hover { background: var(--panel-3); color: var(--text); }
+.tournament__tab:focus-visible { outline: none; box-shadow: var(--ring); border-color: var(--accent-line); }
+.tournament__tab--active {
+  background: var(--panel-3);
+  border-color: var(--accent-line);
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+.tournament__tab-glyph { font-size: var(--fs-md); }
+.tournament__tab-label { font-weight: 600; }
+
 /* home latest-news card */
 .home__news { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); margin-bottom: var(--sp-2); }
 .home__news-item {

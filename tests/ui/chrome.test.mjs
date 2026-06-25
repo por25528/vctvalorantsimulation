@@ -55,16 +55,16 @@ export default async function run() {
   }
 
   // The active item must be the one whose label sits in the highlighted button.
-  // Verify by checking the standings route highlights the Standings item, and
-  // a contextual screen (player) maps to its parent (standings) item too.
-  const standingsHtml = toHtml(
-    Sidebar({ route: { screen: 'standings' }, followedTeam })
+  // Verify the tournament route highlights the unified Tournament item, and a
+  // contextual screen (player) maps to its parent (tournament) item too.
+  const tournamentHtml = toHtml(
+    Sidebar({ route: { screen: 'tournament' }, followedTeam })
   );
-  const activeIdx = standingsHtml.indexOf('sidebar__item--active');
-  const standingsIdx = standingsHtml.indexOf('>Standings</span>');
-  assert(activeIdx !== -1 && standingsIdx !== -1, 'standings markers present');
-  // the active button precedes (contains) the Standings label
-  assert(activeIdx < standingsIdx, 'active class is on the Standings item');
+  const activeIdx = tournamentHtml.indexOf('sidebar__item--active');
+  const tournamentIdx = tournamentHtml.indexOf('>Tournament</span>');
+  assert(activeIdx !== -1 && tournamentIdx !== -1, 'tournament markers present');
+  // the active button precedes (contains) the Tournament label
+  assert(activeIdx < tournamentIdx, 'active class is on the Tournament item');
 
   const playerHtml = toHtml(Sidebar({ route: { screen: 'player' }, followedTeam }));
   assert(
@@ -72,8 +72,8 @@ export default async function run() {
     'contextual screen still highlights exactly one (parent) item'
   );
   const pActive = playerHtml.indexOf('sidebar__item--active');
-  const pStandings = playerHtml.indexOf('>Standings</span>');
-  assert(pActive < pStandings, 'player screen highlights its parent Standings item');
+  const pTournament = playerHtml.indexOf('>Tournament</span>');
+  assert(pActive < pTournament, 'player screen highlights its parent Tournament item');
 
   // empty followed team renders the empty-state badge without throwing
   const noTeamHtml = toHtml(Sidebar({ route: { screen: 'home' }, followedTeam: null }));

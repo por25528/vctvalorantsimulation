@@ -245,7 +245,8 @@ export default async function run() {
 
   openEvent(store, 'kickoff', 'americas', 'standings');
   st = store.getState();
-  assertEqual(selectRoute(st).screen, 'standings', 'openEvent navigates to standings');
+  assertEqual(selectRoute(st).screen, 'tournament', 'openEvent navigates to the unified Tournament view');
+  assertEqual(selectRoute(st).params.view, 'standings', 'openEvent selects the group-stage sub-tab');
   assertEqual(selectRoute(st).params.eventId, 'kickoff-americas', 'openEvent sets composite eventId');
   assertEqual(selectRoute(st).params.region, 'americas', 'openEvent carries region');
 
