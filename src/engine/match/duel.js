@@ -142,7 +142,23 @@ export function duelRating(player, ctx) {
 
   // 3c. Personality traits (P12.3): clutch/big-game/starter reactions to the
   //     moment. Pure function of the player's traits + ctx (no rng); default 1.
-  rating *= traitDuelMod(player, context);
+  //     Stakes amplification: scale the deviation from 1 so high-pressure rounds
+  //     produce larger trait swings (clutch/bigGame lift more; choker drags more).
+  const rawTraitMod = traitDuelMod(player, context);
+  const stakesAmp =
+    typeof context.stakesAmplifier === 'number' && Number.isFinite(context.stakesAmplifier) && context.stakesAmplifier > 0
+      ? context.stakesAmplifier
+      : 1;
+  const traitMod = 1 + (rawTraitMod - 1) * stakesAmp;
+  rating *= traitMod > 0 ? traitMod : 0;
+
+  // 3d. Momentum factor: per-team win/loss-streak pressure within the map.
+  //     Bounded to [1-DUEL_MAX, 1+DUEL_MAX] so it tilts but never erases skill.
+  const momentumFactor =
+    typeof context.momentumFactor === 'number' && Number.isFinite(context.momentumFactor) && context.momentumFactor > 0
+      ? context.momentumFactor
+      : 1;
+  rating *= momentumFactor;
 
   // 4. Proficiency factors (only meaningful when ctx identifies map/agent and
   //    the player carries the corresponding proficiency entry).

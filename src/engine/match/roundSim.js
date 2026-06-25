@@ -36,6 +36,7 @@
 import { BALANCE } from '../../config/balance.js';
 import { duelRating, resolveDuel } from './duel.js';
 import { compAbilityEffects } from './abilities.js';
+import { momentumDuelFactor, momentumEcoBias, stakesAmplifier } from './momentum.js';
 
 /**
  * @typedef {import('./duel.js').RoundContext} RoundContext
@@ -66,6 +67,10 @@ import { compAbilityEffects } from './abilities.js';
  * @property {string[]} [compB] team B agent composition (5 agentIds); drives ability effects
  * @property {boolean} [ultReadyA] whether team A's ult is charged this round
  * @property {boolean} [ultReadyB] whether team B's ult is charged this round
+ * @property {number} [momentumA] team A momentum in [-1,+1] (default 0; match-momentum-b4)
+ * @property {number} [momentumB] team B momentum in [-1,+1] (default 0)
+ * @property {number} [scoreA] team A map score so far (for stakes detection; default 0)
+ * @property {number} [scoreB] team B map score so far (default 0)
  */
 
 /** Rounds (1-indexed) that start a half — always pistol rounds (mirror economy.js). */
@@ -79,13 +84,17 @@ const DEFAULT_TRADING = 50;
  * tiering in economy.decideBuy but is rng-free (the buy decision itself is made
  * upstream; here we only need a stable type to pick the econFactor). Pistol
  * rounds are always 'pistol'.
+ * An optional `creditBias` (from momentum) shifts the effective credits so a
+ * team on a winning streak may stretch into the next buy tier and vice-versa.
  * @param {SideEcon} econ
  * @param {number} roundNo
+ * @param {number} [creditBias] momentum-derived credit offset (default 0)
  * @returns {'pistol'|'eco'|'force'|'full'}
  */
-function econTypeFor(econ, roundNo) {
+function econTypeFor(econ, roundNo, creditBias) {
   if (PISTOL_ROUNDS.includes(roundNo)) return 'pistol';
-  const credits = econ && typeof econ.credits === 'number' ? econ.credits : 0;
+  const base = econ && typeof econ.credits === 'number' ? econ.credits : 0;
+  const credits = base + (typeof creditBias === 'number' && Number.isFinite(creditBias) ? creditBias : 0);
   if (credits >= BALANCE.BUY_FULL_MIN) return 'full';
   if (credits >= BALANCE.BUY_FORCE_MIN) return 'force';
   return 'eco';
@@ -131,11 +140,24 @@ function avgTrading(aliveIds, players) {
  * @param {number} econFactor
  * @param {boolean} isClutch this player's side has exactly 1 alive
  * @param {string} mapId
- * @param {Player|undefined} player (used to expose agentId proficiency hook later)
+ * @param {number} teamFactor chemistry multiplier
+ * @param {number} roundNo 1-indexed round number
+ * @param {number} [momentumFactor] duel-rating multiplier from team momentum (default 1)
+ * @param {number} [stakesAmp] trait-deviation amplifier for this round (default 1)
  * @returns {RoundContext}
  */
-function buildContext(side, econType, econFactor, isClutch, mapId, teamFactor, roundNo) {
-  return { side, econType, econFactor, isClutch, mapId, teamFactor: typeof teamFactor === 'number' ? teamFactor : 1, roundNo: typeof roundNo === 'number' ? roundNo : 0 };
+function buildContext(side, econType, econFactor, isClutch, mapId, teamFactor, roundNo, momentumFactor, stakesAmp) {
+  return {
+    side,
+    econType,
+    econFactor,
+    isClutch,
+    mapId,
+    teamFactor: typeof teamFactor === 'number' ? teamFactor : 1,
+    roundNo: typeof roundNo === 'number' ? roundNo : 0,
+    momentumFactor: typeof momentumFactor === 'number' && Number.isFinite(momentumFactor) ? momentumFactor : 1,
+    stakesAmplifier: typeof stakesAmp === 'number' && Number.isFinite(stakesAmp) ? stakesAmp : 1,
+  };
 }
 
 /**
@@ -148,11 +170,15 @@ function buildContext(side, econType, econFactor, isClutch, mapId, teamFactor, r
  * @param {'pistol'|'eco'|'force'|'full'} econType
  * @param {number} econFactor
  * @param {string} mapId
+ * @param {number} teamFactor
+ * @param {number} roundNo
+ * @param {number} [momentumFactor]
+ * @param {number} [stakesAmp]
  * @returns {number}
  */
-function roundStrength(aliveIds, players, side, econType, econFactor, mapId, teamFactor, roundNo) {
+function roundStrength(aliveIds, players, side, econType, econFactor, mapId, teamFactor, roundNo, momentumFactor, stakesAmp) {
   if (!aliveIds || aliveIds.length === 0) return 0;
-  const ctx = buildContext(side, econType, econFactor, false, mapId, teamFactor, roundNo);
+  const ctx = buildContext(side, econType, econFactor, false, mapId, teamFactor, roundNo, momentumFactor, stakesAmp);
   let sum = 0;
   let bestIgl = 0;
   for (const id of aliveIds) {
@@ -184,6 +210,10 @@ export function simRound(args, rng) {
   const chemA = typeof args.chemA === 'number' && args.chemA > 0 ? args.chemA : 1;
   const chemB = typeof args.chemB === 'number' && args.chemB > 0 ? args.chemB : 1;
 
+  // Momentum scalars in [-1,+1] (default 0 = no streak effect).
+  const rawMomA = typeof args.momentumA === 'number' && Number.isFinite(args.momentumA) ? args.momentumA : 0;
+  const rawMomB = typeof args.momentumB === 'number' && Number.isFinite(args.momentumB) ? args.momentumB : 0;
+
   // --- Identify which TEAM is attacker vs defender this round. ---------------
   // The attacker is the team whose side === 'atk'. We carry the team letter so
   // the final RoundLog can report winnerTeam alongside winnerSide.
@@ -202,14 +232,24 @@ export function simRound(args, rng) {
   const startAtk = aliveAtk.length;
   const startDef = aliveDef.length;
 
+  // --- Per-side momentum factors and stakes amplifier. -----------------------
+  // Momentum is per-TEAM; map to per-SIDE depending on who is atk/def this round.
+  const atkMomRaw = atkTeam === 'A' ? rawMomA : rawMomB;
+  const defMomRaw = defTeam === 'A' ? rawMomA : rawMomB;
+  const atkMomFactor = momentumDuelFactor(atkMomRaw);
+  const defMomFactor = momentumDuelFactor(defMomRaw);
+
+  // Momentum-biased credit for buy-tier (shifts aggression without extra rng).
+  const atkCreditBias = momentumEcoBias(atkMomRaw);
+  const defCreditBias = momentumEcoBias(defMomRaw);
+
   // --- Per-side econ type / factor (pistol handled inside duelRating). -------
-  const atkEconType = econTypeFor(econByTeam[atkTeam], n);
-  const defEconType = econTypeFor(econByTeam[defTeam], n);
+  const atkEconType = econTypeFor(econByTeam[atkTeam], n, atkCreditBias);
+  const defEconType = econTypeFor(econByTeam[defTeam], n, defCreditBias);
   const baseAtkEconFactor = econFactorFor(atkEconType);
   const baseDefEconFactor = econFactorFor(defEconType);
 
   // --- Ability effects: map comp archetypes to bounded round multipliers. ----
-  // Comps are optional (gracefully absent in legacy callers or tests).
   const compAtk = atkTeam === 'A' ? args.compA : args.compB;
   const compDef = defTeam === 'A' ? args.compA : args.compB;
   const ultReadyAtk = atkTeam === 'A' ? (args.ultReadyA || false) : (args.ultReadyB || false);
@@ -217,12 +257,13 @@ export function simRound(args, rng) {
   const abilityAtk = compAbilityEffects(compAtk, ultReadyAtk);
   const abilityDef = compAbilityEffects(compDef, ultReadyDef);
 
-  // Multiply base econ factors by ability multipliers.
-  // atkFactor = attacker's ability boost (smokes/flashes help push site).
-  // defFactor = defender's ability boost (anchors help hold site).
-  // Ult fires as an additive bonus on top of the ability factor.
   const atkEconFactor = baseAtkEconFactor * abilityAtk.atkFactor * (1 + abilityAtk.ultBonus);
   const defEconFactor = baseDefEconFactor * abilityDef.defFactor * (1 + abilityDef.ultBonus);
+
+  // Stakes amplifier for trait deviations this round.
+  const scoreA = typeof args.scoreA === 'number' ? args.scoreA : 0;
+  const scoreB = typeof args.scoreB === 'number' ? args.scoreB : 0;
+  const amp = stakesAmplifier({ scoreA, scoreB, roundNo: n, atkEconType, defEconType });
 
   /** @type {DuelEvent[]} */
   const events = [];
@@ -287,8 +328,8 @@ export function simRound(args, rng) {
     const atkClutch = aliveAtk.length === 1;
     const defClutch = aliveDef.length === 1;
 
-    const ctxAtk = buildContext('atk', atkEconType, atkEconFactor, atkClutch, mapId, atkFactor, n);
-    const ctxDef = buildContext('def', defEconType, defEconFactor, defClutch, mapId, defFactor, n);
+    const ctxAtk = buildContext('atk', atkEconType, atkEconFactor, atkClutch, mapId, atkFactor, n, atkMomFactor, amp);
+    const ctxDef = buildContext('def', defEconType, defEconFactor, defClutch, mapId, defFactor, n, defMomFactor, amp);
 
     // weightedPick a participant from each side, weight = its duelRating.
     const atkId = rng.weightedPick(aliveAtk, (id) => {
@@ -378,8 +419,8 @@ export function simRound(args, rng) {
     } else if (aliveEndDef > aliveEndAtk) {
       winnerSide = 'def';
     } else {
-      const atkStrength = roundStrength(aliveAtk, players, 'atk', atkEconType, atkEconFactor, mapId, atkFactor, n);
-      const defStrength = roundStrength(aliveDef, players, 'def', defEconType, defEconFactor, mapId, defFactor, n);
+      const atkStrength = roundStrength(aliveAtk, players, 'atk', atkEconType, atkEconFactor, mapId, atkFactor, n, atkMomFactor, amp);
+      const defStrength = roundStrength(aliveDef, players, 'def', defEconType, defEconFactor, mapId, defFactor, n, defMomFactor, amp);
       const pAtk = 1 / (1 + Math.exp(-(atkStrength - defStrength) / BALANCE.ROUND_SCALE));
       winnerSide = rng.next() < pAtk ? 'atk' : 'def';
     }

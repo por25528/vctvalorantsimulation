@@ -28,6 +28,7 @@ import { decideBuy, createEconomy, applyRoundResult } from './economy.js';
 import { simRound } from './roundSim.js';
 import { createBoxScore, accumulate, finalize, pickMvp } from './boxScore.js';
 import { createUltState, advanceUltState, compProfile } from './abilities.js';
+import { updateMomentum } from './momentum.js';
 
 /**
  * @typedef MapResult
@@ -172,6 +173,10 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
   const rounds = [];
   const score = { A: 0, B: 0 };
 
+  // Per-team momentum in [-1,+1]: starts at 0 (no streak), updated after each round.
+  let momentumA = 0;
+  let momentumB = 0;
+
   let n = 1;
   while (!mapOver(score.A, score.B) && n <= MAX_ROUNDS) {
     const sideA = sideForA(n, startSideA);
@@ -207,7 +212,11 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
         compA,
         compB,
         ultReadyA,
-        ultReadyB
+        ultReadyB,
+        momentumA,
+        momentumB,
+        scoreA: score.A,
+        scoreB: score.B
       },
       rng
     );
@@ -217,6 +226,10 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
     // Tally score.
     if (log.winnerTeam === 'A') score.A += 1;
     else score.B += 1;
+
+    // Update momentum based on this round's outcome.
+    momentumA = updateMomentum(momentumA, log.winnerTeam === 'A');
+    momentumB = updateMomentum(momentumB, log.winnerTeam === 'B');
 
     // Accumulate the box score for this round (consumes rng for assists).
     box = accumulate(box, log, rng);
