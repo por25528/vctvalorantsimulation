@@ -2451,3 +2451,54 @@ button {
   .sidebar__follow { justify-content: center; }
   .topbar__event { font-size: var(--fs-xs); }
 }
+
+/* ---- Stats (per-league / per-region analytics) ---- */
+.stats__summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0 var(--sp-5);
+}
+.stats__summary-item {
+  display: flex;
+  flex-direction: column;
+  min-width: 92px;
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+}
+.stats__summary-value { font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--text); }
+.stats__summary-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+
+.stats__section { margin-bottom: var(--sp-6); }
+.stats__section-title { font-size: var(--fs-lg); font-weight: var(--fw-semibold); margin: 0 0 2px; }
+.stats__section-sub { font-size: var(--fs-sm); color: var(--muted); margin: 0 0 var(--sp-3); }
+.stats-regions { width: 100%; }
+.stats__region { font-weight: var(--fw-medium); }
+
+/* horizontal-bar histograms (OVR / age / nationality) */
+.stats__hist { display: flex; flex-direction: column; gap: var(--sp-2); max-width: 640px; }
+.stats__bar-row { display: grid; grid-template-columns: 64px 1fr 40px; align-items: center; gap: var(--sp-3); }
+.stats__bar-label { font-size: var(--fs-xs); color: var(--muted); font-family: var(--font-mono); text-align: right; }
+.stats__bar-track { height: 14px; background: var(--panel-2); border-radius: var(--r-pill); overflow: hidden; }
+.stats__bar-fill { height: 100%; min-width: 2px; background: var(--accent); border-radius: var(--r-pill); transition: width var(--t-fast); }
+.stats__hist--age .stats__bar-fill { background: var(--win); }
+.stats__hist--nat .stats__bar-fill { background: var(--cp); }
+.stats__bar-count { font-size: var(--fs-xs); font-family: var(--font-mono); color: var(--text); }
+
+/* Tier 1 / Tier 2 split cards */
+.stats__tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: var(--sp-4); max-width: 640px; }
+.stats__tier-card {
+  padding: var(--sp-4);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+}
+.stats__tier-card--t1 { border-top: 3px solid var(--accent); }
+.stats__tier-card--t2 { border-top: 3px solid var(--win); }
+.stats__tier-card--prospect { border-top: 3px solid var(--cp); }
+.stats__tier-name { font-size: var(--fs-md); font-weight: var(--fw-semibold); margin-bottom: var(--sp-3); }
+.stats__tier-stat { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; }
+.stats__tier-stat-label { font-size: var(--fs-sm); color: var(--muted); }
+.stats__tier-stat-value { font-size: var(--fs-md); font-weight: var(--fw-medium); font-family: var(--font-mono); }

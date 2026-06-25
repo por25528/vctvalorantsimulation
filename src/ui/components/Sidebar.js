@@ -31,6 +31,7 @@ export const NAV_ITEMS = [
   { screen: 'standings', label: 'Standings', icon: 'standings', glyph: '≡' },
   { screen: 'bracket', label: 'Bracket', icon: 'bracket', glyph: '⑂' },
   { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍' },
+  { screen: 'stats', label: 'Stats', icon: 'chart', glyph: '▥' },
   { screen: 'cp', label: 'CP Race', icon: 'target', glyph: '◈' },
   { screen: 'champions', label: 'Champions', icon: 'trophy', glyph: '♚' },
   { screen: 'awards', label: 'Awards', icon: 'medal', glyph: '✦' },
