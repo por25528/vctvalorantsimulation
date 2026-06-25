@@ -4,7 +4,7 @@
  */
 
 import { assert, section } from '../_assert.mjs';
-import { resolveContract, salaryFor } from '../../src/engine/career/offseason/contracts.js';
+import { resolveContract, salaryFor, contractLengthFor } from '../../src/engine/career/offseason/contracts.js';
 import { createPlayer } from '../../src/domain/player.js';
 import { createTeam } from '../../src/domain/team.js';
 import { createRng } from '../../src/core/rng.js';
@@ -97,4 +97,25 @@ export default async function run() {
       prev = s;
     }
   }
+
+  section('contractLengthFor — age-aware term, always within bounds (M7)');
+  const atAge = (age) => createPlayer({ name: 'P', age, attributes: { aim: 80, movement: 80, reaction: 80, composure: 80, consistency: 80, gameSense: 80, utility: 80, trading: 80, igl: 60 } });
+  // Determinism: same player + same seed → identical term.
+  assert(contractLengthFor(atAge(22), createRng(7)) === contractLengthFor(atAge(22), createRng(7)), 'contractLengthFor is deterministic for a seed');
+  // Bounds + age monotonicity of the AVERAGE term across many seeds.
+  const avgTerm = (age) => {
+    let sum = 0;
+    const n = 300;
+    for (let s = 0; s < n; s += 1) {
+      const len = contractLengthFor(atAge(age), createRng(70000 + s));
+      assert(len >= C.LENGTH_MIN && len <= C.LENGTH_MAX, `term within [${C.LENGTH_MIN},${C.LENGTH_MAX}] (age ${age}, got ${len})`);
+      sum += len;
+    }
+    return sum / n;
+  };
+  const youngTerm = avgTerm(22);
+  const midTerm = avgTerm(31);
+  const vetTerm = avgTerm(35);
+  assert(youngTerm > midTerm, `a young player gets a longer average term than a mid-30 one (${youngTerm.toFixed(2)} vs ${midTerm.toFixed(2)})`);
+  assert(midTerm > vetTerm - 1e-9 && vetTerm === C.LENGTH_MIN, `a veteran only ever gets the minimum term (${vetTerm})`);
 }

@@ -11,11 +11,14 @@
  */
 
 import { assert, section } from './_assert.mjs';
-import { initCareer, advanceCareerSlot, simCareer } from '../src/engine/career/career.js';
+import { initCareer, advanceCareerSlot, advanceCareer, simCareer } from '../src/engine/career/career.js';
 import { simSeason } from '../src/engine/career/season.js';
 import { buildWorld } from '../src/data/seed/index.js';
+import { BALANCE } from '../src/config/balance.js';
 
 const MIN = 5;
+const FLOOR = BALANCE.CAREER.ECONOMY.BUDGET_FLOOR;
+const ROLES = ['Duelist', 'Initiator', 'Controller', 'Sentinel'];
 
 /** Stable per-team roster fingerprint of a world. */
 function rosterFingerprint(world) {
@@ -104,6 +107,53 @@ export default async function run() {
   const sameChamps = other.history.map((h) => h.champion).join(',') === history.map((h) => h.champion).join(',');
   const sameRosters = rosterFingerprint(other.finalWorld) === rosterFingerprint(finalWorld);
   assert(!(sameChamps && sameRosters), 'a different seed yields a different career');
+
+  section('transfer realism — AI clubs manage rosters & budgets sanely over time (M7)');
+  // Drive a real career season-by-season, auditing the off-season market each year:
+  // budgets stay above the floor, rosters stay valid & trend role-complete, and the
+  // AI does NOT splash transfer fees on over-the-hill players (the M7 valuation fix).
+  {
+    let st = initCareer('career-2026');
+    let guard = 0;
+    const feePaidAges = [];
+    let roleCompleteSamples = 0;
+    let roleCompleteTeams = 0;
+    const SEASONS = 4;
+    while (st.history.length < SEASONS && guard < SEASONS * 18 + 16) {
+      const before = st.history.length;
+      st = advanceCareer(st);
+      guard += 1;
+      if (st.history.length === before) continue; // mid-season slot
+      const w = st.world;
+      // Every roster valid every season; every budget above the floor.
+      assertValidRosters(w, `season ${before}`);
+      for (const t of Object.values(w.teamsById)) {
+        assert(t.budget >= FLOOR, `season ${before}: team ${t.id} budget ${t.budget} >= floor ${FLOOR}`);
+      }
+      // Role completeness of the AI starting fives (sampled each off-season).
+      for (const t of Object.values(w.teamsById)) {
+        const roles = new Set();
+        for (const pid of t.roster.slice(0, 5)) { const p = w.playersById[pid]; if (p) roles.add(p.role); }
+        roleCompleteSamples += 1;
+        if (ROLES.every((r) => roles.has(r))) roleCompleteTeams += 1;
+      }
+      // Ages of players acquired for a FEE (a real "we paid up for this" decision).
+      for (const m of st.offseason.transfers) {
+        if (m.kind === 'transfer' && m.fee > 0 && m.toTeamId) {
+          const p = w.playersById[m.playerId];
+          if (p) feePaidAges.push(p.age);
+        }
+      }
+    }
+    assert(feePaidAges.length > 0, 'the AI made at least some paid transfers over the career');
+    const meanFeeAge = feePaidAges.reduce((a, b) => a + b, 0) / feePaidAges.length;
+    // Real orgs pay fees for players in (or approaching) their prime, not for decliners.
+    assert(meanFeeAge < 28, `mean age of fee-paid acquisitions is a prime band (${meanFeeAge.toFixed(1)} < 28)`);
+    const over32 = feePaidAges.filter((a) => a >= 32).length;
+    assert(over32 === 0, `no transfer fee is paid for a 32+ player over the career (got ${over32})`);
+    const roleCompleteRate = roleCompleteTeams / roleCompleteSamples;
+    assert(roleCompleteRate >= 0.75, `most AI starting fives are role-complete (${(roleCompleteRate * 100).toFixed(0)}% >= 75%)`);
+  }
 
   section('regression — simSeason stayed pure (unchanged, deterministic)');
   const w = buildWorld();

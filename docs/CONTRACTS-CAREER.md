@@ -63,7 +63,7 @@ export function generateNewgens(count, rng, opts = {})   // -> Player[] (frozen,
 export function resolveContract(player, team, rng, opts = {})   // -> new contract { teamId, salary, expires, status }
 //   opts: { season=0 }  — called for an EXPIRING player; decides renew vs release
 ```
-- Renewal probability rises with player value (overall+potential) relative to `team.budget`/`team.reputation` and with morale; sentinels of the org (high morale, in-prime) re-sign. Renew ⇒ `{ teamId:team.id, salary: f(overall,potential,age), expires: season+rng.range(LENGTH_MIN,LENGTH_MAX), status:'active' }`. Release ⇒ `{ teamId:null, salary:0, expires:0, status:'free_agent' }`.
+- Renewal probability rises with player value (overall+potential) relative to `team.budget`/`team.reputation` and with morale; sentinels of the org (high morale, in-prime) re-sign. Renew ⇒ `{ teamId:team.id, salary: f(overall,potential,age), expires: season+contractLengthFor(player,rng), status:'active' }` — the term is age-scaled (`contractLengthFor`: young/prime get the full `LENGTH_MIN..LENGTH_MAX` range, 30+ are capped a year shorter, 33+ only get `LENGTH_MIN`), still one rng draw within `[LENGTH_MIN, LENGTH_MAX]`. Release ⇒ `{ teamId:null, salary:0, expires:0, status:'free_agent' }`.
 
 ---
 
