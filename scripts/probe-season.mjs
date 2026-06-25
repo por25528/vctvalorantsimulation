@@ -118,10 +118,10 @@ function validateEvent(entry, expectedPlacements, allTeamIds) {
 const world = buildWorld();
 const allTeamIds = new Set(Object.keys(world.teamsById));
 
-// Expected calendar shape: 20 entries.
+// Expected calendar shape: 21 entries (4 regional × 4 regions + 5 international).
 const REGIONAL_SLOTS = CALENDAR.filter((s) => s.scope === 'regional').length; // 4
-const INTL_SLOTS = CALENDAR.filter((s) => s.scope === 'international').length; // 4
-const EXPECTED_ENTRIES = REGIONAL_SLOTS * 4 + INTL_SLOTS; // 16 + 4 = 20
+const INTL_SLOTS = CALENDAR.filter((s) => s.scope === 'international').length; // 5 (m0,m1,m2,lcq,champions)
+const EXPECTED_ENTRIES = REGIONAL_SLOTS * 4 + INTL_SLOTS; // 16 + 5 = 21
 
 console.log(`World: ${allTeamIds.size} teams, ${Object.keys(world.playersById).length} players`);
 console.log(`Probing ${SEEDS} seeds; expecting ${EXPECTED_ENTRIES} event entries/season.\n`);
@@ -152,6 +152,7 @@ for (let i = 0; i < SEEDS; i++) {
   for (const entry of A.events) {
     let expected;
     if (entry.type === 'champions') expected = 16;
+    else if (entry.type === 'lcq') expected = 8; // 8-team LCQ bracket
     else expected = 12; // kickoff/stage/masters
     const n = validateEvent(entry, expected, allTeamIds);
     if (typeof n === 'number') totalSeriesChecked += n;

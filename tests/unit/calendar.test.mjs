@@ -17,7 +17,7 @@ export default async function run() {
   section('calendar / shape');
 
   assert(Array.isArray(CALENDAR), 'CALENDAR is an array');
-  assertEqual(CALENDAR.length, 8, 'CALENDAR has exactly 8 slots');
+  assertEqual(CALENDAR.length, 9, 'CALENDAR has exactly 9 slots');
 
   /** Expected slots, in order (CONTRACTS-SEASON §2). */
   const expected = [
@@ -28,6 +28,7 @@ export default async function run() {
     { id: 'stage2', type: 'stage', scope: 'regional', formatId: 'stage' },
     { id: 'm2', type: 'masters', scope: 'international', formatId: 'masters', feedsFrom: 'stage2', finalMasters: true },
     { id: 'stage3', type: 'stage', scope: 'regional', formatId: 'stage' },
+    { id: 'lcq', type: 'lcq', scope: 'international', formatId: 'lcq' },
     { id: 'champions', type: 'champions', scope: 'international', formatId: 'champions' }
   ];
 
@@ -55,7 +56,7 @@ export default async function run() {
   const regional = CALENDAR.filter((s) => s.scope === 'regional');
   const international = CALENDAR.filter((s) => s.scope === 'international');
   assertEqual(regional.length, 4, '4 regional slots (kickoff, stage1, stage2, stage3)');
-  assertEqual(international.length, 4, '4 international slots (m0, m1, m2, champions)');
+  assertEqual(international.length, 5, '5 international slots (m0, m1, m2, lcq, champions)');
 
   const masters = CALENDAR.filter((s) => s.type === 'masters');
   assertEqual(masters.length, 3, 'exactly 3 Masters');

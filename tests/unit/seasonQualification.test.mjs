@@ -19,6 +19,7 @@ import {
   regionQualifiers,
   kickoffQualifiers,
   mastersSeedOrder,
+  lcqSeedOrder,
   championsField,
   REGION_ORDER
 } from '../../src/engine/career/qualification.js';
@@ -122,7 +123,7 @@ export default async function seasonQualificationTest() {
     assertEqual(field[0], direct, 'index 0 == direct-slot team');
     assert(!field.slice(1).includes(direct), 'direct team appears exactly once (not in 1..15)');
 
-    // Indices 1..15 are the top-15 by CP excluding the direct team.
+    // Indices 1..15 are the top-15 by CP excluding the direct team (no LCQ path).
     const expectedRest = Object.keys(totals)
       .filter((t) => t !== direct)
       .sort((a, b) => (totals[b] - totals[a]) || (a < b ? -1 : a > b ? 1 : 0))
@@ -135,5 +136,53 @@ export default async function seasonQualificationTest() {
     if (i30 !== -1 && i31 !== -1) {
       assert(i30 < i31, 'equal CP -> lower teamId seeded first');
     }
+  }
+
+  // --- lcqSeedOrder: 8 teams just below the Champions direct cut-off ---------
+  {
+    // Ledger with 30 teams, clear CP ordering.
+    /** @type {Record<string, number>} */
+    const totals = {};
+    for (let i = 0; i < 30; i++) totals[`team-${String(i).padStart(2, '0')}`] = 300 - i * 10;
+    const ledger = { totals };
+    const direct = 'team-00'; // highest CP, has the direct slot
+
+    const seeds = lcqSeedOrder(ledger, direct);
+
+    assertEqual(seeds.length, 8, 'lcqSeedOrder returns 8 teams');
+    assert(Object.isFrozen(seeds), 'lcqSeedOrder result frozen');
+    assert(!seeds.includes(direct), 'direct-slot team excluded from LCQ seeds');
+
+    // Expected: sorted by CP descending (excl direct), indices 14..21.
+    const ranked = Object.keys(totals)
+      .filter((t) => t !== direct)
+      .sort((a, b) => (totals[b] - totals[a]) || (a < b ? -1 : a > b ? 1 : 0));
+    assertEqual(seeds, ranked.slice(14, 22), 'LCQ seeds == ranks 15..22 by CP (excl direct)');
+  }
+
+  // --- championsField with LCQ winner: direct + top-14 + lcqWinner ----------
+  {
+    /** @type {Record<string, number>} */
+    const totals = {};
+    for (let i = 0; i < 25; i++) totals[`team-${String(i).padStart(2, '0')}`] = 250 - i * 10;
+    const ledger = { totals };
+    const direct = 'team-00';
+    const lcqWinner = 'team-16'; // ranked 17th by CP (outside top-14 excl direct = outside top-15)
+
+    const field = championsField(ledger, direct, lcqWinner);
+
+    assertEqual(field.length, 16, 'LCQ-aware field has 16 teams');
+    assert(Object.isFrozen(field), 'field frozen');
+    assertEqual(new Set(field).size, 16, '16 unique teams');
+    assertEqual(field[0], direct, 'index 0 == direct slot');
+    assertEqual(field[15], lcqWinner, 'index 15 == LCQ winner');
+    assert(!field.slice(0, 15).includes(lcqWinner), 'LCQ winner only at index 15');
+
+    // Indices 1..14 = top-14 by CP, excluding direct and lcqWinner.
+    const expectedTop14 = Object.keys(totals)
+      .filter((t) => t !== direct && t !== lcqWinner)
+      .sort((a, b) => (totals[b] - totals[a]) || (a < b ? -1 : a > b ? 1 : 0))
+      .slice(0, 14);
+    assertEqual(field.slice(1, 15), expectedTop14, 'seeds 2..15 = top-14 by CP (excl direct, excl lcqWinner)');
   }
 }

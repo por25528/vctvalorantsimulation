@@ -125,7 +125,7 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   'tier2-offseason', idx)`. `tests/unit/tier2.test.mjs` asserts `simSeason(withT2)`
   reproduces the T1 events of `simSeason(plain)` exactly.
 - **Where T2 is threaded:** `season.js` carries a `state.tier2` accumulator SEPARATE
-  from `state.events` (so the T1 calendar stays 20 entries) and runs each region's T2
+  from `state.events` (so the T1 calendar stays 21 entries) and runs each region's T2
   league through the same `simEvent` on every REGIONAL slot. `career.js` attaches T2
   in `initCareer`, re-attaches it after `applyInSeasonDynamics`/`restForNewSeason`
   (both rebuild the T1 world and DROP `tier2`), and runs `runTier2Offseason` after the

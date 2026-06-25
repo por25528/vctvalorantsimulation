@@ -156,7 +156,7 @@ export default async function run() {
   assert(Number.isFinite(season0.seed), 'season carries a derived numeric seed');
   assertEqual(season0.slotIndex, 0, 'season starts at slot 0');
   assertEqual(season0.complete, false, 'season not complete at start');
-  assertEqual(selectCalendar(st).length, 8, 'calendar has 8 slots');
+  assertEqual(selectCalendar(st).length, 9, 'calendar has 9 slots');
   assertEqual(selectSlotsPlayed(st), 0, 'no slots played at start');
 
   // followed team is a real team object
@@ -270,7 +270,7 @@ export default async function run() {
   st = store.getState();
 
   assertEqual(selectSeason(st).complete, true, 'season completes');
-  assertEqual(selectSlotsPlayed(st), 8, 'all 8 slots played');
+  assertEqual(selectSlotsPlayed(st), 9, 'all 9 slots played');
   assertEqual(selectRoute(st).screen, 'champions', 'completion routes to champions');
   const field = selectChampionsField(st);
   assert(Array.isArray(field) && field.length === 16, 'champions field has 16 teams');

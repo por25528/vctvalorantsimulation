@@ -71,18 +71,60 @@ export function mastersSeedOrder(regionResultsByRegion) {
 }
 
 /**
+ * Build the 8-team seed order for the LCQ event.
+ *
+ * Takes the 8 teams immediately below the Champions direct-qualification cut-off:
+ * after excluding the direct-slot team (m2 winner), sort all teams by cumulative
+ * CP descending (teamId tiebreak) and take indices 14..21 — i.e. ranks 15..22
+ * in that sorted list. These are the teams that "just missed" the top-14 CP
+ * threshold for Champions.
+ *
+ * @param {{ totals:Record<string, number> }} cpLedger
+ * @param {string} directSlotTeamId  the m2 winner (already has Champions direct slot)
+ * @returns {string[]} frozen array of up to 8 teamIds (index 0 == seed 1)
+ */
+export function lcqSeedOrder(cpLedger, directSlotTeamId) {
+  const totals = cpLedger.totals || {};
+  const ranked = Object.keys(totals)
+    .filter((teamId) => teamId !== directSlotTeamId)
+    .sort((a, b) =>
+      (totals[b] - totals[a]) || (a < b ? -1 : a > b ? 1 : 0)
+    );
+  return Object.freeze(ranked.slice(14, 22));
+}
+
+/**
  * Build the 16-team seed order for the Champions event.
  *
- * Index 0      = the direct-slot team (the final Masters champion).
- * Indices 1..15 = the top-15 teams by cumulative CP, EXCLUDING the direct team,
- *                 ties broken by teamId ascending.
+ * Without lcqWinnerId (original path, backward-compatible):
+ *   Index 0      = the direct-slot team (the final Masters champion).
+ *   Indices 1..15 = the top-15 teams by cumulative CP, EXCLUDING the direct team,
+ *                   ties broken by teamId ascending.
+ *
+ * With lcqWinnerId (LCQ path):
+ *   Index 0      = the direct-slot team (the final Masters champion).
+ *   Indices 1..14 = the top-14 teams by cumulative CP, EXCLUDING the direct team
+ *                   AND the LCQ winner, ties broken by teamId ascending.
+ *   Index 15     = the LCQ winner (earns the dedicated LCQ qualification slot).
+ *
+ * The result is always 16 unique teamIds.
  *
  * @param {{ totals:Record<string, number> }} cpLedger
  * @param {string} directSlotTeamId
+ * @param {string|null} [lcqWinnerId]  when provided, reserves index 15 for this team
  * @returns {string[]} frozen array of 16 teamIds (index 0 == seed 1)
  */
-export function championsField(cpLedger, directSlotTeamId) {
+export function championsField(cpLedger, directSlotTeamId, lcqWinnerId = null) {
   const totals = cpLedger.totals || {};
+  if (lcqWinnerId) {
+    const ranked = Object.keys(totals)
+      .filter((teamId) => teamId !== directSlotTeamId && teamId !== lcqWinnerId)
+      .sort((a, b) =>
+        (totals[b] - totals[a]) || (a < b ? -1 : a > b ? 1 : 0)
+      )
+      .slice(0, 14);
+    return Object.freeze([directSlotTeamId, ...ranked, lcqWinnerId]);
+  }
   const ranked = Object.keys(totals)
     .filter((teamId) => teamId !== directSlotTeamId)
     .sort((a, b) =>
