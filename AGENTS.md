@@ -171,3 +171,10 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Ult economy**: `createUltState(comp)` / `advanceUltState(state, kills, won)` thread through `mapSim.js`'s round loop. When `state.ready === true` at the START of a round, `ultReadyA/B` is passed to `simRound()` and the bonus fires; the advance then resets to 0. `MapResult` gains `ultUsage: {A, B}` (fire count) and `abilityProfile: {A, B}` (per-team archetype counts).
 - **Backward compatibility**: `compA`/`compB`/`ultReadyA`/`ultReadyB` are OPTIONAL in `SimRoundArgs` — existing callers that omit them get 1× multipliers (no-op). Tests assert this.
 - **Effect magnitudes**: smoke +2.5% ATK per agent, flash +1.5% ATK, anchor +2.5% DEF, info +4% trade probability, balanced comp (has smoke/flash + anchor + info) +2% on both, ult +8% econ factor. All capped at 10%. Meaningful but not dominant — comparable to the chemistry multiplier swing.
+- **Finances screen** (`src/ui/screens/Finances.js`, route id `'finances'`): GM budget/payroll view
+  for the followed team. Uses `selectTeamFinances` (existing), `selectPayrollBreakdown` (per-player
+  salary rows), and `selectTransferBalance` (window fees in/out). Player actions: `releasePlayer`
+  (already in commands.js) and `sellPlayer` (added — finds richest willing AI buyer deterministically,
+  reuses `transferFee` + MIN_ROSTER guard). Both commands live in `state/commands.js`; no new valuation
+  numbers. Initial roster is exactly `MARKET.MIN_ROSTER` (5) at season 0, so tests must inject an
+  extra player before exercising sell/release.
