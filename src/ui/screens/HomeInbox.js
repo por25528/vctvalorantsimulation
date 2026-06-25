@@ -265,7 +265,7 @@ function followedPathCard(state, season, followed, go, store) {
               onClick: () =>
                 store
                   ? openEvent(store, e.slotId, e.region || undefined)
-                  : go('standings', { slotId: e.slotId, region: e.region || null, eventId: e.eventId })
+                  : go('tournament', { slotId: e.slotId, region: e.region || null, eventId: e.eventId, view: 'standings' })
             },
             h(
               'span',

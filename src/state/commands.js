@@ -20,7 +20,7 @@
  *   continueSeason(store)           advance the season one slot; autosave; toast
  *                                   the slot just played; navigate calendar/event
  *                                   (champion toast + champions screen on finish).
- *   openEvent(store, slotId, region)navigate the event's standings/bracket.
+ *   openEvent(store, slotId, region)navigate the event's Tournament view.
  *   openSeries(store, seriesId)     hydrate the series, point the ticker, go match.
  *   signPlayer/releasePlayer/offerContract/moveRosterPlayer
  *                                   — the user's transfer-market + lineup moves;
@@ -562,18 +562,19 @@ export function continueSeason(store, opts = {}) {
 }
 
 /**
- * Navigate to an event's view (standings by default). For a regional slot pass
- * the `region`; for an international slot pass only `slotId`.
+ * Navigate to an event's Tournament view (group stage by default). For a
+ * regional slot pass the `region`; for an international slot pass only `slotId`.
+ * The unified Tournament screen takes a `view` sub-tab ('standings' | 'bracket').
  *
  * @param {import('../core/store.js').Store} store
  * @param {string} slotId
  * @param {string} [region]
- * @param {string} [screen='standings']  'standings' | 'bracket'
+ * @param {string} [view='standings']  'standings' | 'bracket' Tournament sub-tab
  * @returns {void}
  */
-export function openEvent(store, slotId, region, screen = 'standings') {
+export function openEvent(store, slotId, region, view = 'standings') {
   const eventId = region ? `${slotId}-${region}` : slotId;
-  store.dispatch(navigate(screen, { slotId, region: region || null, eventId }));
+  store.dispatch(navigate('tournament', { slotId, region: region || null, eventId, view }));
 }
 
 /**

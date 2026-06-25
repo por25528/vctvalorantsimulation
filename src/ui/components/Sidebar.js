@@ -2,11 +2,12 @@
  * ui/components/Sidebar.js — the FM-style navigation hub (CONTRACTS-UI §4, §6).
  *
  * Vertical nav of the primary screens (home / squad / market / calendar /
- * standings / bracket / cp / champions / leaders / saves). The contextual screens
- * (team / player / development / match) are reached by clicking through other
- * screens, so they don't get their own top-level item — but if the active route
- * IS one of them we still surface a sensible highlight via NAV_PARENT. Includes
- * the followed-team badge.
+ * tournament / cp / champions / leaders / saves). The Tournament item is the
+ * single entry point for an event's group stage + playoff bracket. The
+ * contextual screens (team / player / development / match) are reached by
+ * clicking through other screens, so they don't get their own top-level item —
+ * but if the active route IS one of them we still surface a sensible highlight
+ * via NAV_PARENT. Includes the followed-team badge.
  *
  * Pure props -> VNode. Navigation is delegated to `onNavigate(screen)`.
  */
@@ -28,8 +29,9 @@ export const NAV_ITEMS = [
   { screen: 'market', label: 'Transfers', icon: 'swap', glyph: '⇄' },
   { screen: 'offseason', label: 'Transfer Window', icon: 'refresh', glyph: '↻' },
   { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦' },
-  { screen: 'standings', label: 'Standings', icon: 'standings', glyph: '≡' },
-  { screen: 'bracket', label: 'Bracket', icon: 'bracket', glyph: '⑂' },
+  // Unified Tournament tab (group stage + playoff bracket) replaces the former
+  // standalone Standings/Bracket items; uses the bracket icon as its marker.
+  { screen: 'tournament', label: 'Tournament', icon: 'bracket', glyph: '⑂' },
   { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍' },
   { screen: 'stats', label: 'Stats', icon: 'chart', glyph: '▥' },
   { screen: 'cp', label: 'CP Race', icon: 'target', glyph: '◈' },
@@ -42,14 +44,18 @@ export const NAV_ITEMS = [
 
 /**
  * Map a contextual screen to the nav item that should appear active when it's
- * showing (team/player relate to standings; match relates to bracket).
+ * showing. The former Standings/Bracket items are unified under 'tournament',
+ * so team/player/match (and the legacy 'standings'/'bracket' route ids) all
+ * surface the Tournament nav highlight.
  * @type {Record<string,string>}
  */
 const NAV_PARENT = {
-  team: 'standings',
-  player: 'standings',
+  team: 'tournament',
+  player: 'tournament',
   development: 'squad',
-  match: 'bracket'
+  match: 'tournament',
+  standings: 'tournament',
+  bracket: 'tournament'
 };
 
 /**

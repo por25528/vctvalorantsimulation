@@ -85,6 +85,30 @@ export function BracketScreen(state, dispatch, store) {
     );
   }
 
+  return h(
+    'section',
+    { class: 'screen screen--bracket', 'data-screen': 'bracket' },
+    head(eventLabel(entry)),
+    EventPicker({ events, activeEventId: eventId, onPick }),
+    ...bracketContent(state, dispatch, store, eventId)
+  );
+}
+
+/**
+ * The playoff body for a resolved event: the format legend + the bracket view
+ * (or an empty note for events without a playoff). Returns an array of VNodes
+ * (no outer screen chrome, title, or EventPicker), so it can be embedded by
+ * either the standalone {@link BracketScreen} or the unified Tournament screen.
+ * Assumes `eventId` names a played event.
+ *
+ * @param {object} state
+ * @param {(action:object)=>void} dispatch
+ * @param {object} [store]
+ * @param {string} eventId
+ * @returns {Array<*>} VNodes (some entries may be null)
+ */
+export function bracketContent(state, dispatch, store, eventId) {
+  const event = selectEvent(state, eventId);
   const playoffStage = playoffStageOf(event);
   const model = playoffStage ? buildBracketView(event, playoffStage) : null;
 
@@ -114,16 +138,12 @@ export function BracketScreen(state, dispatch, store) {
   const followed = selectFollowedTeam(state);
   const followedTeamId = followed ? followed.id : null;
 
-  return h(
-    'section',
-    { class: 'screen screen--bracket', 'data-screen': 'bracket' },
-    head(eventLabel(entry)),
-    EventPicker({ events, activeEventId: eventId, onPick }),
+  return [
     playoffStage ? bracketLegend(playoffStage.bracketType) : null,
     model
       ? BracketView({ model, teamsById, followedTeamId, onMatch })
       : h('p', { class: 'screen__empty' }, 'This event has no playoff bracket.')
-  );
+  ];
 }
 
 /** A short explainer of how the bracket format works (the part people find confusing). */

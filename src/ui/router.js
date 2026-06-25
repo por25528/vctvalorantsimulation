@@ -26,6 +26,7 @@ import { HomeInbox } from './screens/HomeInbox.js';
 import { Calendar } from './screens/Calendar.js';
 import { StandingsScreen } from './screens/Standings.js';
 import { BracketScreen } from './screens/Bracket.js';
+import { TournamentScreen } from './screens/Tournament.js';
 import { MatchScreen } from './screens/Match.js';
 import { MatchDayScreen } from './screens/MatchDay.js';
 import { TeamScreen } from './screens/Team.js';
@@ -53,6 +54,9 @@ export const ROUTES = Object.freeze({
   home: HomeInbox,
   matchday: MatchDayScreen,
   calendar: Calendar,
+  tournament: TournamentScreen,
+  // Legacy route ids — the nav now unifies these under `tournament`, but the
+  // standalone screens stay registered so any in-flight deep link still resolves.
   standings: StandingsScreen,
   bracket: BracketScreen,
   match: MatchScreen,
