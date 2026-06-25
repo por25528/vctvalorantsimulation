@@ -50,5 +50,6 @@ export const CP_TABLE = Object.freeze({
   kickoff: fromList([4, 3, 2, 1]),
   stage: descending(5),
   masters: descending(8),
+  lcq: fromList([3, 2, 1]),
   champions: Object.freeze({})
 });

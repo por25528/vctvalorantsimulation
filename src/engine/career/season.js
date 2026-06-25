@@ -54,6 +54,7 @@
  * @property {Record<string, { seedOrder:string[] }>} masters
  * @property {Record<string, Record<string, EventResult>>} regionalResultsBySlot  // internal: feeds masters seeding
  * @property {string|null} m2Winner
+ * @property {string|null} lcqWinner                // LCQ placement-1; earns the final Champions slot
  * @property {string[]|null} championsField
  * @property {string|null} champion
  * @property {boolean} complete
@@ -71,12 +72,14 @@ import {
 import {
   REGION_ORDER,
   mastersSeedOrder,
-  championsField
+  championsField,
+  lcqSeedOrder
 } from './qualification.js';
 
 import { KICKOFF_FORMAT } from '../../config/formats/kickoff.js';
 import { STAGE_FORMAT } from '../../config/formats/stage.js';
 import { MASTERS_FORMAT } from '../../config/formats/masters.js';
+import { LCQ_FORMAT } from '../../config/formats/lcq.js';
 import { CHAMPIONS_FORMAT } from '../../config/formats/champions.js';
 import { CP_TABLE } from '../../config/cpTable.js';
 
@@ -91,6 +94,7 @@ const FORMAT_BY_ID = Object.freeze({
   kickoff: KICKOFF_FORMAT,
   stage: STAGE_FORMAT,
   masters: MASTERS_FORMAT,
+  lcq: LCQ_FORMAT,
   champions: CHAMPIONS_FORMAT
 });
 
@@ -189,10 +193,11 @@ export function initSeason(world, seed) {
     masters: Object.freeze({}),
     regionalResultsBySlot: Object.freeze({}),
     m2Winner: null,
+    lcqWinner: null,
     championsField: null,
     champion: null,
     // P12.4 — Tier-2 (Challengers) season accumulator, kept SEPARATE from `events`
-    // so the T1 calendar shape (20 entries) is unchanged. Null when the world has
+    // so the T1 calendar shape (21 entries) is unchanged. Null when the world has
     // no `tier2` namespace attached (e.g. a bare simSeason over buildWorld()).
     tier2: world.tier2 ? initTier2Season() : null,
     complete: false
@@ -251,6 +256,7 @@ export function advanceSeason(state, world) {
   const masters = { ...state.masters };
   const regionalResultsBySlot = { ...state.regionalResultsBySlot };
   let m2Winner = state.m2Winner;
+  let lcqWinner = state.lcqWinner;
   let champion = state.champion;
   let championsFieldOrder = state.championsField;
   let tier2 = state.tier2;
@@ -292,11 +298,39 @@ export function advanceSeason(state, world) {
       cpAwards
     }));
     if (slot.finalMasters) m2Winner = teamAtRank(result, 1);
+  } else if (slot.type === 'lcq') {
+    if (m2Winner == null) {
+      throw new Error('advanceSeason: reached LCQ before a final Masters (m2) winner was set');
+    }
+    const seedOrder = lcqSeedOrder(ledger, m2Winner);
+    const result = simEvent(
+      format,
+      {
+        eventId: slot.id,
+        teamsById: world.teamsById,
+        playersById: world.playersById,
+        seedOrder
+      },
+      hashSeed(seed, slot.id)
+    );
+    const cpAwards = awardCP(result, CP_TABLE);
+    ledger = applyCP(ledger, slot.id, null, result, CP_TABLE);
+    events.push(Object.freeze({
+      slotId: slot.id,
+      type: slot.type,
+      scope: slot.scope,
+      result,
+      cpAwards
+    }));
+    lcqWinner = teamAtRank(result, 1);
   } else if (slot.type === 'champions') {
     if (m2Winner == null) {
       throw new Error('advanceSeason: reached Champions before a final Masters (m2) winner was set');
     }
-    const seedOrder = championsField(ledger, m2Winner);
+    if (lcqWinner == null) {
+      throw new Error('advanceSeason: reached Champions before an LCQ winner was set');
+    }
+    const seedOrder = championsField(ledger, m2Winner, lcqWinner);
     championsFieldOrder = seedOrder;
     const result = simEvent(
       format,
@@ -335,6 +369,7 @@ export function advanceSeason(state, world) {
     masters: Object.freeze(masters),
     regionalResultsBySlot: Object.freeze(regionalResultsBySlot),
     m2Winner,
+    lcqWinner,
     championsField: championsFieldOrder,
     champion,
     tier2,

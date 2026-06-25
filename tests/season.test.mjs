@@ -112,7 +112,7 @@ function assertInvariants(season, world, regionSets, seed) {
   const allTeamIds = new Set(Object.keys(world.teamsById));
 
   // === 1. CALENDAR SHAPE ===================================================
-  assertEqual(season.events.length, 20, `${tag}: exactly 20 event entries`);
+  assertEqual(season.events.length, 21, `${tag}: exactly 21 event entries`);
   const expectedSlots = [
     'kickoff', 'kickoff', 'kickoff', 'kickoff',
     'm0',
@@ -121,10 +121,11 @@ function assertInvariants(season, world, regionSets, seed) {
     'stage2', 'stage2', 'stage2', 'stage2',
     'm2',
     'stage3', 'stage3', 'stage3', 'stage3',
+    'lcq',
     'champions'
   ];
   assertEqual(season.events.map((e) => e.slotId), expectedSlots,
-    `${tag}: 20 entries in exact calendar order`);
+    `${tag}: 21 entries in exact calendar order`);
 
   // Regional slots expand to one tagged entry per region, in REGION_ORDER.
   for (const slotId of ['kickoff', 'stage1', 'stage2', 'stage3']) {
@@ -144,7 +145,7 @@ function assertInvariants(season, world, regionSets, seed) {
     }
   }
   // International slots are single, untagged entries.
-  for (const slotId of ['m0', 'm1', 'm2', 'champions']) {
+  for (const slotId of ['m0', 'm1', 'm2', 'lcq', 'champions']) {
     const intl = season.events.filter((e) => e.slotId === slotId);
     assertEqual(intl.length, 1, `${tag}: ${slotId} is a single event`);
     assertEqual(intl[0].scope, 'international', `${tag}: ${slotId} is international`);
@@ -208,24 +209,30 @@ function assertInvariants(season, world, regionSets, seed) {
   // === 3. CHAMPIONS COMPOSITION ===========================================
   const m2Entry = season.events.find((e) => e.slotId === 'm2');
   const m2Winner = teamAtRank(m2Entry.result, 1);
+  const lcqEntry = season.events.find((e) => e.slotId === 'lcq');
+  const lcqWinner = teamAtRank(lcqEntry.result, 1);
   const field = season.championsField;
   assertEqual(field.length, 16, `${tag}: Champions field has 16 teams`);
   assertEqual(new Set(field).size, 16, `${tag}: Champions field 16 unique teams`);
   assertEqual(field[0], m2Winner, `${tag}: Champions index 0 == m2 champion (direct slot)`);
+  assertEqual(field[15], lcqWinner, `${tag}: Champions index 15 == LCQ winner`);
   assertEqual(field.filter((id) => id === m2Winner).length, 1,
     `${tag}: m2 champion appears exactly once in the field`);
+  assertEqual(field.filter((id) => id === lcqWinner).length, 1,
+    `${tag}: LCQ winner appears exactly once in the field`);
 
-  // Indices 1..15 = top-15 by cumulative CP at Champions seeding time, excluding
-  // the direct team, ties by teamId. Reconstruct the ledger state EXCLUDING
-  // champions (champions had not yet awarded when seeded, and it awards 0 anyway,
-  // so totals are identical). Rank all teams except the direct slot.
+  // Indices 1..14 = top-14 by cumulative CP at Champions seeding time, excluding
+  // the direct team AND the LCQ winner. The LCQ winner earns seed 16 via the
+  // play-in path regardless of their final CP rank.
+  // Note: totals include LCQ CP awards (applied before Champions seeding), so
+  // we use the final ledger totals for this check.
   const totals = season.ledger.totals;
-  const expectedTop15 = Object.keys(totals)
-    .filter((id) => id !== m2Winner)
+  const expectedTop14 = Object.keys(totals)
+    .filter((id) => id !== m2Winner && id !== lcqWinner)
     .sort((a, b) => (totals[b] - totals[a]) || (a < b ? -1 : a > b ? 1 : 0))
-    .slice(0, 15);
-  assertEqual(field.slice(1), expectedTop15,
-    `${tag}: Champions seeds 2..16 == top-15 by cumulative CP (excl. direct)`);
+    .slice(0, 14);
+  assertEqual(field.slice(1, 15), expectedTop14,
+    `${tag}: Champions seeds 2..15 == top-14 by cumulative CP (excl. direct and LCQ winner)`);
   for (const id of field) {
     assert(allTeamIds.has(id), `${tag}: Champions team ${id} is a real world team`);
   }
@@ -277,8 +284,8 @@ function assertInvariants(season, world, regionSets, seed) {
   for (const v of Object.values(chAwards)) {
     assertEqual(v, 0, `${tag}: champions awards 0 CP`);
   }
-  // Kickoff / stage / masters DO award CP (their placement-1 gets > 0).
-  for (const slotId of ['kickoff', 'stage1', 'stage2', 'stage3', 'm0', 'm1', 'm2']) {
+  // Kickoff / stage / masters / lcq DO award CP (their placement-1 gets > 0).
+  for (const slotId of ['kickoff', 'stage1', 'stage2', 'stage3', 'm0', 'm1', 'm2', 'lcq']) {
     const entry = season.events.find((e) => e.slotId === slotId);
     const winner = teamAtRank(entry.result, 1);
     assert(entry.cpAwards[winner] > 0,
@@ -295,8 +302,8 @@ export default async function seasonTest() {
   assertEqual(Object.keys(world.leagues).sort(), [...REGION_ORDER].sort(),
     'World has the four regional leagues');
 
-  // CALENDAR is the canonical 8-slot calendar (sanity, drives §1).
-  assertEqual(CALENDAR.length, 8, 'CALENDAR has 8 slots');
+  // CALENDAR is the canonical 9-slot calendar (sanity, drives §1).
+  assertEqual(CALENDAR.length, 9, 'CALENDAR has 9 slots');
 
   const regionSets = regionTeamSets(world);
 

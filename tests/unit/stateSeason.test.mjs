@@ -63,7 +63,7 @@ export default async function run() {
   assertEqual(season0.slotIndex, 0, 'season starts at slotIndex 0');
   assertEqual(season0.complete, false, 'season not complete at start');
   assertEqual(selectSlotsPlayed(st), 0, 'no slots played yet');
-  assertEqual(selectCalendar(st).length, 8, 'calendar has 8 slots');
+  assertEqual(selectCalendar(st).length, 9, 'calendar has 9 slots');
   assertEqual(st.events.order.length, 0, 'events mirror empty before any slot');
 
   /* --------------------------- continueSeason --------------------------- */
@@ -106,7 +106,7 @@ export default async function run() {
   const season = selectSeason(st);
 
   assertEqual(season.complete, true, 'season completes');
-  assertEqual(selectSlotsPlayed(st), 8, 'all 8 slots played');
+  assertEqual(selectSlotsPlayed(st), 9, 'all 9 slots played');
   const field = selectChampionsField(st);
   assert(Array.isArray(field) && field.length === 16, 'champions field has 16 teams');
   assertEqual(new Set(field).size, 16, 'champions field teams are unique');
@@ -115,8 +115,8 @@ export default async function run() {
   assert(field.includes(champion), 'champion is in the champions field');
   assert(st.world.teams[champion] != null, 'champion is a real team');
 
-  // 20 event entries total (4 kickoff + 1 + 4 + 1 + 4 + 1 + 4 + 1).
-  assertEqual(season.events.length, 20, 'season recorded 20 event entries');
+  // 21 event entries total (4 kickoff + 1 m0 + 4 stage1 + 1 m1 + 4 stage2 + 1 m2 + 4 stage3 + 1 lcq + 1 champions).
+  assertEqual(season.events.length, 21, 'season recorded 21 event entries');
 
   // The events mirror holds every season event id (+ the legacy alias).
   for (const entry of season.events) {
@@ -144,15 +144,15 @@ export default async function run() {
   assert(season2 != null, 'loaded season present');
   assertEqual(season2.complete, true, 'loaded season is complete');
   assertEqual(selectChampion(st2), champion, 'loaded champion matches saved champion');
-  assertEqual(season2.events.length, 20, 'loaded season has 20 events');
-  assertEqual(selectSlotsPlayed(st2), 8, 'loaded season at slotIndex 8');
+  assertEqual(season2.events.length, 21, 'loaded season has 21 events');
+  assertEqual(selectSlotsPlayed(st2), 9, 'loaded season at slotIndex 9');
   assertEqual(st2.ui.route.screen, 'home', 'loadSlot routes home');
   assertEqual(selectChampionsField(st2).length, 16, 'loaded champions field intact');
 
   // eslint-disable-next-line no-console
   console.log(
     `stateSeason: bootstrap 48 teams/240 players; continued to a champion ` +
-      `(${champion}); 20 events mirrored; saveCurrent->loadSlot restored state ` +
+      `(${champion}); 21 events mirrored; saveCurrent->loadSlot restored state ` +
       `via MemoryAdapter.`
   );
 }
