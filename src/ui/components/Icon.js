@@ -45,6 +45,8 @@ const SHAPES = {
   calendar: () => [h('rect', rect(3.5, 5, 17, 15, null, 2)), path('M3.5 9.5h17'), path('M8 3.5v3'), path('M16 3.5v3')],
   // bar list / standings
   standings: () => [path('M4 7h11'), path('M4 12h16'), path('M4 17h8')],
+  // bar chart on an axis (stats / analytics)
+  chart: () => [path('M4 4v16h16'), h('rect', rect(7, 13, 2.6, 4)), h('rect', rect(11.7, 9, 2.6, 8)), h('rect', rect(16.4, 11.5, 2.6, 5.5))],
   // bracket
   bracket: () => [path('M4 5h4v6h5'), path('M4 19h4v-6'), path('M13 12h3'), path('M16 8.5l4 3.5-4 3.5')],
   // globe (world ranking)
