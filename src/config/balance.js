@@ -29,6 +29,22 @@ function deepFreeze(obj) {
 
 /** @type {Readonly<Balance>} */
 export const BALANCE = deepFreeze({
+  // ====================== MOMENTUM & STAKES (match-momentum-b4) =============
+  // In-map momentum (win/loss streaks) and high-stakes round pressure.
+  // Momentum accumulates via exponential smoothing in [-1, +1]; duel-rating
+  // and buy-aggression tilts are bounded so favorites still win most maps.
+  MOMENTUM: {
+    WIN_STEP: 0.20,         // momentum boost per round won
+    LOSS_STEP: 0.20,        // momentum drop per round lost (symmetric)
+    DECAY: 0.70,            // per-round decay toward 0 (streak fades on alternating results)
+    DUEL_MAX: 0.04,         // max ±4% tilt on individual duel ratings (bounded: favorites still win)
+    ECO_BIAS_MAX: 150,      // max ±150 credit bias on effective credits for buy-tier decision
+    // Stakes amplifiers: multiplied against the trait-deviation from 1.
+    // e.g. a bigGame +5% bonus becomes +7% at match point (1.40 amplifier).
+    STAKES_MATCH_POINT: 0.30,    // amplifier bonus at match point (either team at ROUNDS_TO_WIN-1)
+    STAKES_OT: 0.40,             // amplifier bonus in overtime (highest: most dramatic moments)
+    STAKES_ECO_UPSET: 0.20,      // amplifier bonus when eco faces full buy
+  },
   DUEL_SCALE: 11, // logistic scale for duel rating diff (lower = skill matters more; was 14)
   ROUND_SCALE: 80, // logistic scale for team round-strength diff (tiebreak/spike)
   // duel rating weights (sum ~1.0) over Attributes used in a gunfight

@@ -83,6 +83,33 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   link still resolves) but are no longer in the nav. App-internal deep links (`openEvent` in
   `state/commands.js`, Calendar, HomeInbox) navigate to `'tournament'` with a `view` param.
 
+## In-map momentum & round-stakes pressure (`engine/match/momentum.js`)
+
+- **`src/engine/match/momentum.js`** is a pure module with four exports:
+  `updateMomentum(current, won)` → clamped decay-smoothed scalar in `[-1,+1]`;
+  `momentumDuelFactor(momentum)` → `[1-DUEL_MAX, 1+DUEL_MAX]` multiplier on duel ratings;
+  `momentumEcoBias(momentum)` → `±ECO_BIAS_MAX` credit offset applied inside `roundSim`'s
+  `econTypeFor` (shifts buy tier without extra rng draws);
+  `stakesAmplifier(ctx)` → `≥1` multiplier on trait deviations — eco-upset < match-point < OT.
+- **`mapSim.js`** tracks `momentumA`, `momentumB` (both start at 0, updated via `updateMomentum`
+  after every round) and passes them + the running score to `simRound`.
+- **`roundSim.js`** reads `args.momentumA/B/scoreA/scoreB`, maps per-TEAM to per-SIDE, computes
+  `momentumDuelFactor` + `momentumEcoBias` + `stakesAmplifier` for the round, then threads all
+  three through `buildContext → RoundContext`.
+- **`duel.js`** applies `stakesAmplifier` to the trait-deviation from 1 (amplifying
+  clutch/bigGame/choker effects in pressure moments), then applies `momentumFactor` post-traits.
+- **Constants in `BALANCE.MOMENTUM`**: `WIN_STEP=0.20`, `LOSS_STEP=0.20`, `DECAY=0.70`,
+  `DUEL_MAX=0.04`, `ECO_BIAS_MAX=150`, `STAKES_MATCH_POINT=0.30`, `STAKES_OT=0.40`, `STAKES_ECO_UPSET=0.20`.
+  These are intentionally modest — max momentum only tilts duel ratings by ±4%, so a heavy
+  favourite (skill gap ~10 overall) still wins 90%+ of rounds despite max opponent momentum.
+- **OVERLAP NOTE**: `agent-abilities-a8` also edits `roundSim.js` and `balance.js`. My changes
+  are localized to the `MOMENTUM` block in balance, new `momentumA/B/scoreA/scoreB` fields in
+  `SimRoundArgs`, and new `momentumFactor`/`stakesAmplifier` fields in `buildContext/RoundContext`.
+  Merge conflicts should be straightforward (different sections of the same functions).
+- Tests: `tests/unit/momentum.test.mjs` (bounded invariants, tier detection, win-rate proof,
+  determinism) + all existing match tests (roundSim, mapSim, matchSim, duel, traits, determinism)
+  pass with the new system in place.
+
 ## Tier 2 / Challengers ecosystem (`engine/career/tier2/*`)
 
 - **T2 lives in a SEPARATE `world.tier2` namespace**, never folded into the
