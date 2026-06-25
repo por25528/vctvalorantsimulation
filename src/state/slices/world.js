@@ -4,10 +4,15 @@
  * set/replace actions. Pure reducer (state, action) -> new state (CONTRACTS §12).
  * Immutable updates only; never mutates input.
  *
+ * `tier2` carries the Tier-2 (Challengers) sub-world
+ * { leagues, teamsById, playersById } so the in-UI season advance can run T2
+ * events alongside T1. Null before bootstrap or on legacy saves without T2.
+ *
  * @typedef {Object} WorldState
  * @property {Record<string, object>} leagues
  * @property {Record<string, object>} teams
  * @property {Record<string, object>} players
+ * @property {object|null} tier2
  */
 
 import { produce } from '../../core/produce.js';
@@ -22,7 +27,8 @@ export const WORLD_SET_PLAYER = 'world/setPlayer';
 export const initialWorldState = Object.freeze({
   leagues: {},
   teams: {},
-  players: {}
+  players: {},
+  tier2: null
 });
 
 /** Replace the entire world (e.g. on load/seed). @param {WorldState} world */
@@ -47,7 +53,8 @@ export function worldReducer(state = initialWorldState, action) {
       return {
         leagues: w.leagues || {},
         teams: w.teams || {},
-        players: w.players || {}
+        players: w.players || {},
+        tier2: w.tier2 || null
       };
     }
     case WORLD_SET_LEAGUE:
