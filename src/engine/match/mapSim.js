@@ -43,6 +43,31 @@ import { updateMomentum } from './momentum.js';
  * @property {'A'|'B'} winner
  * @property {{A:number,B:number}} ultUsage  rounds where each team's ult fired
  * @property {{A:object,B:object}} abilityProfile  comp archetype counts per team
+ * @property {ReplayRound[]} [replay]  OPTIONAL per-round timeline (only when opts.replay)
+ */
+
+/**
+ * One entry of the OPTIONAL round-by-round replay timeline. It surfaces values
+ * the engine already computes in the round loop (running score, the true
+ * decay-smoothed momentum scalars BEFORE/AFTER the round, the ult-ready/fire
+ * flags, the buy tier, and the key duel/clutch outcome) so a viewer can play the
+ * map back beat by beat. Built only from already-computed loop values — it
+ * consumes NO rng, so enabling it never shifts an existing draw (additive &
+ * deterministic, exactly like momentum/abilities were added).
+ *
+ * @typedef ReplayRound
+ * @property {number} n round number (1-indexed)
+ * @property {'atk'|'def'} sideA team A's side this round
+ * @property {'A'|'B'} winnerTeam
+ * @property {'elim'|'spike'|'defuse'|'time'} endCondition
+ * @property {boolean} planted
+ * @property {string|null} clutchPlayerId
+ * @property {{A:number,B:number}} score running map score AFTER this round
+ * @property {{A:number,B:number}} momentumBefore momentum scalars used FOR this round
+ * @property {{A:number,B:number}} momentumAfter momentum scalars after the update
+ * @property {{A:('pistol'|'eco'|'force'|'full'),B:('pistol'|'eco'|'force'|'full')}} econ buy tier per team
+ * @property {{A:boolean,B:boolean}} ultReady whether each team's ult was charged (and thus fired) this round
+ * @property {{A:number,B:number}} kills kills by each team this round
  */
 
 /** Safety cap on total rounds so an OT can never loop unboundedly. */
@@ -150,10 +175,18 @@ function killsPerTeam(log, sideA) {
  * @param {import('../../core/rng.js').Rng} rng
  * @param {number} [chemA] team A chemistry multiplier (default 1; P12.2)
  * @param {number} [chemB] team B chemistry multiplier (default 1; P12.2)
+ * @param {{replay?:boolean}} [opts] optional flags; `replay:true` records a
+ *   per-round timeline on the result (`MapResult.replay`). Additive & rng-free —
+ *   when omitted the result is byte-identical to before.
  * @returns {MapResult}
  */
-export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, rng, chemA, chemB) {
+export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, rng, chemA, chemB, opts) {
   const startSideA = sideStartA === 'def' ? 'def' : 'atk';
+  // OPTIONAL replay timeline (additive — built from already-computed loop values,
+  // consumes no rng). `null` means "not recording", so existing callers are unaffected.
+  const recordReplay = !!(opts && opts.replay);
+  /** @type {ReplayRound[]|null} */
+  const replay = recordReplay ? [] : null;
 
   // Active 5 per team (first 5 roster ids). These ids drive both the round sim
   // alive sets and the box score roster.
@@ -192,6 +225,11 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
     const ultReadyB = ultB.ready;
     if (ultReadyA) ultUsage.A += 1;
     if (ultReadyB) ultUsage.B += 1;
+
+    // Snapshot the momentum scalars FED INTO this round (before the post-round
+    // update) for the optional replay timeline.
+    const momBeforeA = momentumA;
+    const momBeforeB = momentumB;
 
     // Simulate the round. Alive sets are copies of the active fives; simRound
     // never mutates its inputs but we hand it fresh arrays regardless.
@@ -247,6 +285,25 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
     ultA = advanceUltState(ultA, killsA, log.winnerTeam === 'A');
     ultB = advanceUltState(ultB, killsB, log.winnerTeam === 'B');
 
+    // Record the optional replay beat from values already computed this round.
+    if (replay) {
+      const econ = log.economy || { A: {}, B: {} };
+      replay.push({
+        n,
+        sideA,
+        winnerTeam: log.winnerTeam,
+        endCondition: log.endCondition,
+        planted: !!log.planted,
+        clutchPlayerId: log.clutchPlayerId || null,
+        score: { A: score.A, B: score.B },
+        momentumBefore: { A: momBeforeA, B: momBeforeB },
+        momentumAfter: { A: momentumA, B: momentumB },
+        econ: { A: econ.A ? econ.A.type : 'eco', B: econ.B ? econ.B.type : 'eco' },
+        ultReady: { A: ultReadyA, B: ultReadyB },
+        kills: { A: killsA, B: killsB }
+      });
+    }
+
     n += 1;
   }
 
@@ -256,7 +313,7 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
 
   const winner = score.A > score.B ? 'A' : 'B';
 
-  return {
+  const result = {
     mapId,
     score: { A: score.A, B: score.B },
     sideStartA: startSideA,
@@ -269,4 +326,8 @@ export function simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, r
     ultUsage: { A: ultUsage.A, B: ultUsage.B },
     abilityProfile: { A: compProfile(compA), B: compProfile(compB) }
   };
+  // Attach the replay timeline ONLY when requested, so the default MapResult
+  // shape (and every existing test/snapshot) is untouched.
+  if (replay) result.replay = replay;
+  return result;
 }

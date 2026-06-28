@@ -2292,6 +2292,72 @@ button {
 .momentum__bar--b { fill: var(--teamB); }
 .momentum--empty { padding: var(--sp-3); font-size: var(--fs-sm); }
 
+/* Replay panel: true-momentum strip + key-beats feed for the match viewer. */
+.replay { margin: var(--sp-3) 0; }
+.replay__head { display: flex; align-items: baseline; gap: var(--sp-2); }
+.replay__title-icon { color: var(--accent); align-self: center; }
+.replay__title { margin: 0; font-size: var(--fs-sm); color: var(--muted); font-weight: 600; }
+.replay__score { font-size: var(--fs-sm); color: var(--text); font-variant-numeric: tabular-nums; }
+.replay__round { margin-left: auto; font-size: var(--fs-xs); color: var(--faint); font-variant-numeric: tabular-nums; }
+.replay__svg { width: 100%; height: 56px; display: block; margin-top: var(--sp-1); }
+.replay__mid { stroke: var(--border); stroke-width: 1; }
+.replay__bar { transition: height var(--t-base), y var(--t-base); opacity: 0.85; }
+.replay__bar--a { fill: var(--teamA); }
+.replay__bar--b { fill: var(--teamB); }
+.replay__bar--swing { opacity: 1; stroke: var(--accent-line); stroke-width: 1; }
+
+.replay__feed {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.replay__feed--empty { font-size: var(--fs-sm); padding: var(--sp-2) 0; }
+.replay__row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-1);
+  background: var(--panel-2);
+  border-left: 3px solid var(--border);
+  font-size: var(--fs-sm);
+}
+.replay__row--a { border-left-color: var(--teamA); }
+.replay__row--b { border-left-color: var(--teamB); }
+.replay__rn { color: var(--faint); font-variant-numeric: tabular-nums; min-width: 2.5em; }
+.replay__rteam { color: var(--text); font-weight: 600; min-width: 3.5em; }
+.replay__rscore { color: var(--muted); font-variant-numeric: tabular-nums; min-width: 3em; }
+.replay__beats { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
+.replay__beat {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  font-size: var(--fs-xs);
+  background: var(--panel-3);
+  color: var(--muted);
+}
+.replay__beat-icon { color: var(--muted); }
+.replay__beat--mapwon { background: var(--mvp-soft); color: var(--mvp); }
+.replay__beat--mapwon .replay__beat-icon { color: var(--mvp); }
+.replay__beat--clutch,
+.replay__beat--ace { background: var(--accent-soft); color: var(--accent); }
+.replay__beat--clutch .replay__beat-icon,
+.replay__beat--ace .replay__beat-icon { color: var(--accent); }
+.replay__beat--eco { background: var(--econ-eco); color: var(--bg); }
+.replay__beat--eco .replay__beat-icon { color: var(--bg); }
+.replay__beat--ult { background: var(--cp-soft); color: var(--cp); }
+.replay__beat--ult .replay__beat-icon { color: var(--cp); }
+.replay__beat--matchpoint { background: var(--loss-soft); color: var(--loss); }
+.replay__beat--matchpoint .replay__beat-icon { color: var(--loss); }
+.replay--empty { padding: var(--sp-3); font-size: var(--fs-sm); }
+
 /* The play-by-play pair: commentary feed beside the round's kill feed. */
 .match__playbyplay {
   display: grid;

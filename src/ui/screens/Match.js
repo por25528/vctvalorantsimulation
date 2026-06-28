@@ -30,6 +30,7 @@ import { BoxScore } from '../components/BoxScore.js';
 import { CommentaryLog } from '../components/CommentaryLog.js';
 import { KillFeed } from '../components/KillFeed.js';
 import { MomentumTimeline } from '../components/MomentumTimeline.js';
+import { ReplayTimeline } from '../components/ReplayTimeline.js';
 import { MAPS } from '../../config/maps.js';
 
 /** mapId -> display name, derived once from the config pool. */
@@ -360,6 +361,15 @@ function mapPane(props) {
         )
       : null,
     MomentumTimeline({ mapResult, index: cursor, playing: revealing }),
+    ReplayTimeline({
+      mapResult,
+      playersById,
+      teamsById,
+      teamAId: series.teamAId,
+      teamBId: series.teamBId,
+      index: cursor,
+      playing: revealing
+    }),
     RoundTicker({
       mapResult,
       index: cursor,
