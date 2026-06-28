@@ -200,10 +200,34 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Ult economy**: `createUltState(comp)` / `advanceUltState(state, kills, won)` thread through `mapSim.js`'s round loop. When `state.ready === true` at the START of a round, `ultReadyA/B` is passed to `simRound()` and the bonus fires; the advance then resets to 0. `MapResult` gains `ultUsage: {A, B}` (fire count) and `abilityProfile: {A, B}` (per-team archetype counts).
 - **Backward compatibility**: `compA`/`compB`/`ultReadyA`/`ultReadyB` are OPTIONAL in `SimRoundArgs` — existing callers that omit them get 1× multipliers (no-op). Tests assert this.
 - **Effect magnitudes**: smoke +2.5% ATK per agent, flash +1.5% ATK, anchor +2.5% DEF, info +4% trade probability, balanced comp (has smoke/flash + anchor + info) +2% on both, ult +8% econ factor. All capped at 10%. Meaningful but not dominant — comparable to the chemistry multiplier swing.
-- **Finances screen** (`src/ui/screens/Finances.js`, route id `'finances'`): GM budget/payroll view
-  for the followed team. Uses `selectTeamFinances` (existing), `selectPayrollBreakdown` (per-player
-  salary rows), and `selectTransferBalance` (window fees in/out). Player actions: `releasePlayer`
-  (already in commands.js) and `sellPlayer` (added — finds richest willing AI buyer deterministically,
-  reuses `transferFee` + MIN_ROSTER guard). Both commands live in `state/commands.js`; no new valuation
-  numbers. Initial roster is exactly `MARKET.MIN_ROSTER` (5) at season 0, so tests must inject an
-  extra player before exercising sell/release.
+## Spectator / god-observer model (the app is hands-off — NO team management)
+
+- **This is a WorldBox-style god-observer spectator sim, not a GM game.** The user never manages a
+  team: there is NO sell / release / sign / buy / contract-extend / lineup-reorder / coach hire-fire.
+  Those commands were REMOVED from `state/commands.js`; do not re-add user agency over rosters. The
+  engine runs every club autonomously — you are removing *user agency*, not the simulation.
+- **No privileged "my team".** `continueSeason` runs the off-season with `runCareerOffseason(career)`
+  (no `protectTeamId`), so even the team the camera is on is subject to the same AI market. The engine
+  still *accepts* a `protectTeamId` opt (unused by the UI now) — leave that engine param alone.
+- **"Followed team" is a FREE CAMERA, not ownership.** `followTeam(store, teamId|null)` just points a
+  lightweight viewing focus (`ui.followedTeamId`); null = roam all teams. The Sidebar footer is the
+  "NOW VIEWING" chip and the TopBar's far-left control is the "Camera" dropdown — both pure focus.
+- **Management screens are now READ-ONLY observation views** (data kept, action controls dropped):
+  `Finances.js` (budget/payroll ledger — `selectTeamFinances`/`selectPayrollBreakdown`/
+  `selectTransferBalance`), `Squad.js` ("Roster"), `TransferMarket.js` ("Market Watch": read-only
+  finances + coach card + roster + league free-agent pool). When restyling these, do NOT reintroduce
+  buttons that mutate the world.
+- **Kept observer tools:** the god-mode editor (`editPlayer`/`editTeam`/`healPlayer`) and scouting
+  (`scoutPlayer`) — world-shaping, not team management.
+
+## Visual identity — "Mission Control" (styles/)
+
+- The look is a sleek esports-broadcast / control-surface dashboard: deep slate-navy base, an electric
+  **signal-cyan** accent (`--accent`), a warm **amber/red "live"** secondary (`--live`), sharp HUD
+  radii, and a mono "HUD" voice for labels (uppercase, `--tracking-hud`). EVERYTHING is token-driven
+  in `styles/theme.css` — change a token and the whole app shifts; screens never hardcode hex.
+- Structural identity lives in `styles/main.css`: body has a fixed HUD gridline texture; the Sidebar
+  is a grouped broadcast rail (NAV_ITEMS now carry a `section` field: watch/competition/world/tools)
+  with a glowing active marker; panel/card/table titles use the mono HUD voice; the TopBar carries a
+  "LIVE" on-air chip. Keyboard focus still uses `box-shadow: var(--ring)` on `:focus-visible`.
+- New icons go in `components/Icon.js` (e.g. `cross` = injury marker). Icons, never emoji.

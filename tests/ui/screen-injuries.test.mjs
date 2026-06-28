@@ -31,7 +31,8 @@ export default async function run() {
   store.dispatch(setPlayer({ ...p, injury: { weeks: 2, type: 'wrist strain' } }));
   html = toHtml(Squad(store.getState(), store.dispatch, store));
   assert(html.includes('squad__row--injured'), 'the injured row is flagged');
-  assert(html.includes('🩹'), 'the injury chip renders');
+  // The chip is an inline-SVG icon (icons, not emoji), wrapped in .squad__injury.
+  assert(html.includes('squad__injury') && html.includes('<svg'), 'the injury chip renders as an icon');
   assert(html.includes('wrist strain') && html.includes('out ~2 events'), 'the chip tooltip describes the injury');
 
   section('News — an injury item renders with its glyph');

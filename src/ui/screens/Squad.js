@@ -1,14 +1,16 @@
 /**
- * ui/screens/Squad.js — the followed team's roster (CONTRACTS-CAREER §4, id 'squad').
+ * ui/screens/Squad.js — the viewed team's roster (CONTRACTS-CAREER §4, id 'squad').
  *
- * Pure `(state, dispatch, store) => VNode`. A squad-management view: each player's
- * role/age, overall + potential, the live form/morale/fatigue dynamics that feed
- * the match engine, and their contract (salary + expiry season). Rows click
- * through to the Player screen. Read-only in this phase.
+ * Pure `(state, dispatch, store) => VNode`. A read-only roster view for whichever
+ * team the camera is on: each player's role/age, overall + potential, the live
+ * form/morale/fatigue dynamics that feed the match engine, and their contract
+ * (salary + expiry season). Rows click through to the Player screen. Pure
+ * observation — there is no lineup/management here; the engine runs every roster.
  */
 
 import { h, classNames } from '../render.js';
 import { navigate } from '../../state/actions.js';
+import { Icon } from '../components/Icon.js';
 import {
   selectFollowedTeam,
   selectRoster,
@@ -63,12 +65,12 @@ export function Squad(state, dispatch, store) {
     h(
       'header',
       { class: 'screen__head' },
-      h('h1', { class: 'screen__title' }, `${team.name} — Squad`),
+      h('h1', { class: 'screen__title' }, `${team.name} — Roster`),
       h('span', { class: 'badge squad__season' }, `Season ${seasonIndex + 1}`),
       h(
         'button',
         { type: 'button', class: 'link squad__market-link', onClick: () => go('market') },
-        'Manage in Transfer Market →'
+        'Open Market Watch →'
       )
     ),
     h(
@@ -102,7 +104,11 @@ function playerRow(p, go) {
         p.handle || p.name
       ),
       injury
-        ? h('span', { class: 'squad__injury', title: `${injury.type} — out ~${injury.weeks} event${injury.weeks > 1 ? 's' : ''}` }, ' 🩹')
+        ? h(
+            'span',
+            { class: 'squad__injury', title: `${injury.type} — out ~${injury.weeks} event${injury.weeks > 1 ? 's' : ''}`, 'aria-label': 'Injured' },
+            Icon('cross', { size: 13 })
+          )
         : null
     ),
     h('td', null, p.role),

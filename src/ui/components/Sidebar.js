@@ -1,13 +1,17 @@
 /**
- * ui/components/Sidebar.js — the FM-style navigation hub (CONTRACTS-UI §4, §6).
+ * ui/components/Sidebar.js — the broadcast control rail (CONTRACTS-UI §4, §6).
  *
- * Vertical nav of the primary screens (home / squad / market / calendar /
- * tournament / cp / champions / leaders / saves). The Tournament item is the
- * single entry point for an event's group stage + playoff bracket. The
- * contextual screens (team / player / development / match) are reached by
- * clicking through other screens, so they don't get their own top-level item —
- * but if the active route IS one of them we still surface a sensible highlight
- * via NAV_PARENT. Includes the followed-team badge.
+ * The mission-control navigation surface for the god-observer world sim. A
+ * vertical rail of the primary screens, grouped into labelled sections (WATCH /
+ * COMPETITION / WORLD / GOD TOOLS) so it reads like a control desk rather than a
+ * flat menu. The Tournament item is the single entry point for an event's group
+ * stage + playoff bracket. Contextual screens (team / player / development /
+ * match) have no top-level item; if the active route IS one of them we surface a
+ * sensible highlight via NAV_PARENT.
+ *
+ * The footer carries the "NOW VIEWING" free-camera chip — the spectator's
+ * current focus (any team), NOT a managed/owned team. Clicking it jumps to that
+ * team's page.
  *
  * Pure props -> VNode. Navigation is delegated to `onNavigate(screen)`.
  */
@@ -16,33 +20,41 @@ import { h, classNames } from '../render.js';
 import { Icon } from './Icon.js';
 
 /**
- * Primary nav items: screen id + label + icon name (see {@link Icon}).
- * The legacy `glyph` is retained only as a textual fallback / accessibility hint
- * — the rendered marker is the coherent inline-SVG `icon`.
- * @type {Array<{screen:string,label:string,icon:string,glyph:string}>}
+ * Primary nav items: screen id + label + icon name (see {@link Icon}) + the
+ * section the item is grouped under. The legacy `glyph` is retained only as a
+ * textual fallback / accessibility hint — the rendered marker is the coherent
+ * inline-SVG `icon`.
+ * @type {Array<{screen:string,label:string,icon:string,glyph:string,section:string}>}
  */
 export const NAV_ITEMS = [
-  { screen: 'home', label: 'Home', icon: 'home', glyph: '⌂' },
-  { screen: 'matchday', label: 'Match Day', icon: 'play', glyph: '▶' },
-  { screen: 'news', label: 'Inbox', icon: 'inbox', glyph: '✉' },
-  { screen: 'squad', label: 'Squad', icon: 'squad', glyph: '⛶' },
-  { screen: 'market', label: 'Transfers', icon: 'swap', glyph: '⇄' },
-  { screen: 'scouting', label: 'Scouting', icon: 'binoculars', glyph: '⊙' },
-  { screen: 'finances', label: 'Finances', icon: 'finance', glyph: '$' },
-  { screen: 'offseason', label: 'Transfer Window', icon: 'refresh', glyph: '↻' },
-  { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦' },
-  // Unified Tournament tab (group stage + playoff bracket) replaces the former
-  // standalone Standings/Bracket items; uses the bracket icon as its marker.
-  { screen: 'tournament', label: 'Tournament', icon: 'bracket', glyph: '⑂' },
-  { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍' },
-  { screen: 'stats', label: 'Stats', icon: 'chart', glyph: '▥' },
-  { screen: 'cp', label: 'CP Race', icon: 'target', glyph: '◈' },
-  { screen: 'tier2', label: 'Challengers', icon: 'standings', glyph: '≡' },
-  { screen: 'champions', label: 'Champions', icon: 'trophy', glyph: '♚' },
-  { screen: 'awards', label: 'Awards', icon: 'medal', glyph: '✦' },
-  { screen: 'leaders', label: 'Leaders', icon: 'star', glyph: '★' },
-  { screen: 'editor', label: 'God Mode', icon: 'wand', glyph: '✎' },
-  { screen: 'saves', label: 'Saves', icon: 'save', glyph: '▤' }
+  { screen: 'home', label: 'God View', icon: 'home', glyph: '⌂', section: 'watch' },
+  { screen: 'matchday', label: 'Match Day', icon: 'play', glyph: '▶', section: 'watch' },
+  { screen: 'news', label: 'Inbox', icon: 'inbox', glyph: '✉', section: 'watch' },
+  // Unified Tournament tab (group stage + playoff bracket). Label pinned by tests.
+  { screen: 'tournament', label: 'Tournament', icon: 'bracket', glyph: '⑂', section: 'competition' },
+  { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦', section: 'competition' },
+  { screen: 'cp', label: 'CP Race', icon: 'target', glyph: '◈', section: 'competition' },
+  { screen: 'champions', label: 'Champions', icon: 'trophy', glyph: '♚', section: 'competition' },
+  { screen: 'awards', label: 'Awards', icon: 'medal', glyph: '✦', section: 'competition' },
+  { screen: 'leaders', label: 'Leaders', icon: 'star', glyph: '★', section: 'competition' },
+  { screen: 'tier2', label: 'Challengers', icon: 'standings', glyph: '≡', section: 'competition' },
+  { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍', section: 'world' },
+  { screen: 'stats', label: 'Stats', icon: 'chart', glyph: '▥', section: 'world' },
+  { screen: 'scouting', label: 'Scouting', icon: 'binoculars', glyph: '⊙', section: 'world' },
+  { screen: 'squad', label: 'Roster', icon: 'squad', glyph: '⛶', section: 'world' },
+  { screen: 'market', label: 'Market Watch', icon: 'swap', glyph: '⇄', section: 'world' },
+  { screen: 'finances', label: 'Finances', icon: 'finance', glyph: '$', section: 'world' },
+  { screen: 'offseason', label: 'Transfer Window', icon: 'refresh', glyph: '↻', section: 'world' },
+  { screen: 'editor', label: 'God Mode', icon: 'wand', glyph: '✎', section: 'tools' },
+  { screen: 'saves', label: 'Saves', icon: 'save', glyph: '▤', section: 'tools' }
+];
+
+/** Section order + display titles for the grouped rail. */
+const SECTIONS = [
+  { id: 'watch', title: 'Watch' },
+  { id: 'competition', title: 'Competition' },
+  { id: 'world', title: 'World' },
+  { id: 'tools', title: 'God Tools' }
 ];
 
 /**
@@ -81,12 +93,19 @@ export function Sidebar(props) {
       'div',
       { class: 'sidebar__brand' },
       h('span', { class: 'sidebar__logo' }, 'VCT'),
-      h('span', { class: 'sidebar__title' }, '2026')
+      h('span', { class: 'sidebar__title' }, '// WORLD SIM')
     ),
     h(
       'ul',
       { class: 'sidebar__nav' },
-      NAV_ITEMS.map((item) => navItem(item, activeScreen, onNavigate, unread))
+      SECTIONS.flatMap((sec) => {
+        const items = NAV_ITEMS.filter((it) => it.section === sec.id);
+        if (!items.length) return [];
+        return [
+          h('li', { key: `sec-${sec.id}`, class: 'sidebar__section', 'aria-hidden': 'true' }, sec.title),
+          ...items.map((item) => navItem(item, activeScreen, onNavigate, unread))
+        ];
+      })
     ),
     followedBadge(followedTeam, onNavigate)
   );
@@ -118,13 +137,18 @@ function navItem(item, activeScreen, onNavigate, unread) {
   );
 }
 
-/** The followed-team badge (clicks through to the team screen). */
+/**
+ * The "NOW VIEWING" free-camera chip — the spectator's current focus. There is
+ * no ownership/management here; it just jumps to whoever is in focus. Renders an
+ * empty placeholder when no team is focused.
+ */
 function followedBadge(team, onNavigate) {
   if (!team) {
     return h(
       'div',
       { class: 'sidebar__follow sidebar__follow--empty' },
-      h('span', { class: 'sidebar__follow-label' }, 'No team followed')
+      h('span', { class: 'sidebar__follow-kicker' }, 'Now viewing'),
+      h('span', { class: 'sidebar__follow-label' }, 'Free camera — pick a team')
     );
   }
   const name = team.name != null ? team.name : team.id;
@@ -133,11 +157,16 @@ function followedBadge(team, onNavigate) {
     'button',
     {
       type: 'button',
-      class: 'sidebar__follow badge badge--team',
+      class: 'sidebar__follow',
       onClick: onNavigate ? () => onNavigate('team') : undefined,
-      'aria-label': `Followed team: ${name}`
+      'aria-label': `Now viewing: ${name}`
     },
     h('span', { class: 'sidebar__follow-tag' }, tag),
-    h('span', { class: 'sidebar__follow-name' }, name)
+    h(
+      'span',
+      { class: 'sidebar__follow-body' },
+      h('span', { class: 'sidebar__follow-kicker' }, 'Now viewing'),
+      h('span', { class: 'sidebar__follow-name' }, name)
+    )
   );
 }
