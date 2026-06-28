@@ -24,6 +24,7 @@
  * @property {number} seasonIndex
  * @property {Array<object>} history
  * @property {object|null} offseason
+ * @property {object} playerLegacy   persistent per-player career memory (Wave 2 E; additive)
  * @property {'inSeason'|'offseason'} phase
  */
 
@@ -36,6 +37,10 @@ export const initialCareerState = Object.freeze({
   seasonIndex: 0,
   history: [],
   offseason: null,
+  // Wave 2 (E): the per-player career-legacy ledger. Strictly additive — a legacy
+  // save without it merges into this empty shape, so the All-Time screens degrade
+  // gracefully (no crash, no NaN) until the next season boundary banks into it.
+  playerLegacy: { players: {}, seasonsBanked: 0 },
   phase: 'inSeason'
 });
 

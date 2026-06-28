@@ -34,6 +34,7 @@
  * @property {object} season                // the live SeasonState
  * @property {SeasonSummary[]} history       // completed seasons, in order
  * @property {OffseasonReport|null} offseason  // the most recent off-season report
+ * @property {object} playerLegacy            // persistent per-player career memory (Wave 2 E)
  * @property {'inSeason'} phase
  */
 
@@ -55,6 +56,7 @@ import { seedCoaches, runStaff, makeCoachNegoOf } from './staff.js';
 import { driftChemistry } from './chemistry.js';
 import { attachTier2 } from './tier2/tier2World.js';
 import { runTier2Offseason } from './tier2/tier2Offseason.js';
+import { emptyLegacy, accumulateSeason } from './playerLegacy.js';
 
 const D = BALANCE.CAREER.DYNAMICS;
 const CL = BALANCE.CAREER.CONTRACT;
@@ -91,6 +93,7 @@ export function initCareer(seed) {
     season,
     history: Object.freeze([]),
     offseason: null,
+    playerLegacy: emptyLegacy(),
     phase: 'inSeason'
   });
 }
@@ -148,6 +151,11 @@ export function runCareerOffseason(state, opts = {}) {
     throw new Error('runCareerOffseason: the season must be complete (phase "offseason")');
   }
   const summary = summarizeSeason(state.season, state.seasonIndex, state.world);
+  // Wave 2 (E): bank the just-finished season into the persistent player career
+  // ledger BEFORE the world is reshaped by the off-season — a pure read-aggregate
+  // over the completed season's box scores + this summary's awards/winners (no rng,
+  // no Date). `state.world` here is the end-of-season world (championship rosters).
+  const playerLegacy = accumulateSeason(state.playerLegacy, state.season, summary, state.world);
   // P13: reputation MOVES with the season's results first, so the new prestige
   // feeds this off-season's sponsor income, the transfer pecking order, and the
   // pull a club exerts on talent. Deterministic (no rng); only `reputation` changes.
@@ -193,6 +201,7 @@ export function runCareerOffseason(state, opts = {}) {
     history: Object.freeze([...state.history, summary]),
     offseason: report,
     tier2Offseason: tier2Report || null,
+    playerLegacy,
     phase: 'inSeason'
   });
 }

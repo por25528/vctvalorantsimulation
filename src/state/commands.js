@@ -172,6 +172,7 @@ function buildSaveGame(store, opts = {}) {
       seasonIndex: c.seasonIndex || 0,
       history: c.history || [],
       offseason: c.offseason || null,
+      playerLegacy: c.playerLegacy || { players: {}, seasonsBanked: 0 },
       phase: c.phase || 'inSeason'
     },
     inbox: (state.inbox && state.inbox.items) || [],
@@ -222,6 +223,8 @@ function hydrateSaveGame(store, saveGame) {
     seasonIndex: c.seasonIndex || 0,
     history: c.history || [],
     offseason: c.offseason || null,
+    // Wave 2 (E): legacy saves without a banked ledger degrade to empty.
+    playerLegacy: c.playerLegacy || { players: {}, seasonsBanked: 0 },
     phase: c.phase || (saveGame.season && saveGame.season.complete ? 'offseason' : 'inSeason')
   }));
 
@@ -303,6 +306,7 @@ function readCareer(store) {
     season: selectSeason(state),
     history: c.history || [],
     offseason: c.offseason || null,
+    playerLegacy: c.playerLegacy || null,
     phase: c.phase || 'inSeason'
   };
 }
@@ -327,6 +331,7 @@ function writeCareer(store, career, opts = {}) {
     seasonIndex: career.seasonIndex,
     history: career.history,
     offseason: career.offseason,
+    playerLegacy: career.playerLegacy,
     phase: career.phase
   }));
   if (career.season) mirrorEvents(store, career.season);
@@ -351,6 +356,7 @@ function installCareer(store, career) {
     seasonIndex: career.seasonIndex,
     history: career.history,
     offseason: career.offseason,
+    playerLegacy: career.playerLegacy,
     phase: career.phase
   }));
   const teamIds = Object.keys(career.world.teamsById);

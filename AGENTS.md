@@ -66,6 +66,34 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Newgen stat lines are role-SHAPED**, not flat: `newgen.js` re-centres `domain/player.js`'s `roleProfile(role)` to zero mean and adds it to `baseOverall`, so a generated Duelist is aim-heavy/igl-light (matching authored players and what `development.js` preserves) while OVERALL still equals `baseOverall` (calibration untouched).
 - **Validate the OUTCOME, not just the code.** `node scripts/probe-newgen.mjs [seed] [seasons]` prints the seed-world demographics, a large newgen quality/role histogram, and long-run pool health (rostered overall mean/p90/max, active-pool size, per-role counts) per season — run it across a few seeds to confirm stability before changing any NEWGEN/AGING constant. `tests/unit/talent-pool.test.mjs` encodes the resulting invariants (pyramid shape, role demographics/identity, multi-season stability, no role drought, bounded pool, determinism).
 
+## Player career legacy — persistent per-player memory (Wave 2 E)
+
+- **`engine/career/playerLegacy.js` is a PURE season-boundary accumulator** — the only home for a
+  player's cross-season arc (championships, MVPs/awards, maps & series, career ACS/K-D, milestones,
+  peak). `accumulateSeason(legacy, season, summary, world)` reads the COMPLETED season's box scores
+  (`aggregatePlayerStats` from awards.js), the SeasonSummary's awards, and per-event winners, then
+  banks them into a growing `{ players, seasonsBanked }` ledger. **Zero rng draws, no Date, inputs
+  never mutated, outputs frozen** — it only READS the frozen history/box-scores, so match results stay
+  byte-identical. Titles are credited via the END-OF-SEASON roster ∩ event box-score participants
+  (a player must have been rostered on the winner AND appeared in its maps).
+- **Threaded through the EVOLVING layer only.** `career.js` calls `accumulateSeason` inside
+  `runCareerOffseason` (BEFORE the world is reshaped — `state.world` there is the championship-roster
+  world), and `initCareer` seeds `emptyLegacy()`. `advanceCareerSlot` carries it via spread. The match/
+  format/season engines are untouched.
+- **`state.career.playerLegacy` is STRICTLY ADDITIVE** (workstream E owns the shape of `state.career`).
+  Persisted by `buildSaveGame`/restored by `hydrateSaveGame`; the migration layer
+  (`persistence/migrations.js`) is non-destructive (spreads `...save`), so the field survives without a
+  SCHEMA_VERSION bump, and legacy saves without it degrade to `{ players:{}, seasonsBanked:0 }` at the
+  hydrate layer (no crash, no NaN). Tuning lives in `BALANCE.CAREER.LEGACY` (milestone thresholds,
+  min-maps leaderboard guard, leaderboard size).
+- **UI:** `ui/legacyDerive.js` is the pure view-model builder (`derivePlayerStory`, `deriveAllTime`,
+  `deriveLegacySummary`, `eraTag`, `careerArc`, `ALLTIME_BOARDS`); screens `screens/PlayerCareer.js`
+  (route `career`, the Life Story rise→peak→decline arc + trophy cabinet + milestones + season table)
+  and `screens/AllTimePlayers.js` (route `legends`, the All-Time leaderboard, board picked via the
+  `board` route param). Selectors `selectPlayerLegacy`/`selectPlayerCareer` always return a usable
+  shape. Sidebar "All-Time" nav item (icon `crown`); `NAV_PARENT.career = 'legends'`. BEM blocks
+  `.legacy`/`.alltime` in main.css (token-driven). Smoke: `node scripts/demo-career.mjs <seed> 3`.
+
 ## UI shell — screens & routing
 
 - Screens are pure `(state, dispatch[, store]) => VNode`. The router (`ui/router.js`) maps a

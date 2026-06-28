@@ -131,6 +131,9 @@ function playerHeader(player, team, dispatch, agg) {
   const goDevelopment = dispatch
     ? () => dispatch(navigate('development', { playerId: player.id }))
     : null;
+  const goCareer = dispatch
+    ? () => dispatch(navigate('career', { playerId: player.id }))
+    : null;
 
   return h(
     'header',
@@ -143,6 +146,11 @@ function playerHeader(player, team, dispatch, agg) {
       'button',
       { type: 'button', class: 'link player__dev-link', onClick: goDevelopment },
       'View development →'
+    ),
+    h(
+      'button',
+      { type: 'button', class: 'link player__career-link', onClick: goCareer },
+      'Career & legacy →'
     ),
     h(
       'div',

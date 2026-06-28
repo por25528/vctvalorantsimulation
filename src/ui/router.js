@@ -47,6 +47,8 @@ import { Offseason } from './screens/Offseason.js';
 import { Scouting } from './screens/Scouting.js';
 import { FinancesScreen } from './screens/Finances.js';
 import { Tier2Screen } from './screens/Tier2.js';
+import { PlayerCareer } from './screens/PlayerCareer.js';
+import { AllTimePlayers } from './screens/AllTimePlayers.js';
 
 /**
  * Screen id -> screen render fn (CONTRACTS-UI §5).
@@ -80,7 +82,10 @@ export const ROUTES = Object.freeze({
   news: News,
   editor: Editor,
   offseason: Offseason,
-  tier2: Tier2Screen
+  tier2: Tier2Screen,
+  // Wave 2 (E) — persistent player career memory.
+  career: PlayerCareer,
+  legends: AllTimePlayers
 });
 
 /** The fallback screen id for unknown routes. */

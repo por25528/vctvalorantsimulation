@@ -284,6 +284,20 @@ export const BALANCE = deepFreeze({
       ROOKIE_MAX_AGE: 20, // Rookie of the Year is the best qualified player at or below this age
       ALL_PRO_SIZE: 5 // players per All-Pro team (First = top 5 by rating, Second = next 5)
     },
+    // ---- player career legacy / life story (E, engine/career/playerLegacy.js) ----
+    // Pure season-boundary aggregation banked into state.career.playerLegacy. No rng,
+    // no Date — read-only over the frozen history ledger + completed-season box scores.
+    LEGACY: {
+      MIN_PEAK_MAPS: 6, // a season needs this many maps to qualify as a player's "peak" season
+      MIN_LEADERBOARD_MAPS: 30, // career stat (ACS / K-D) leaders need this many career maps (small-sample guard)
+      TITLE_MILESTONES: [1, 3, 5, 10], // world-championship counts that mint a milestone
+      EVENT_TITLE_MILESTONES: [5, 10, 25], // total-events-won counts that mint a milestone
+      MAP_MILESTONES: [100, 250, 500, 1000], // career maps-played counts that mint a milestone
+      MVP_MILESTONES: [1, 3, 5], // season-MVP counts that mint a milestone
+      MVP_STREAK: 3, // consecutive MVP seasons that mint the "MVP N years running" milestone
+      SEASON_MILESTONES: [5, 10, 15], // seasons-played (longevity) counts that mint a milestone
+      LEADERBOARD_SIZE: 50 // rows shown per All-Time leaderboard board
+    },
     // ---- news & inbox (P7b, engine/career/news.js + state/slices/inbox.js) ----
     NEWS: {
       INBOX_CAP: 150, // the inbox keeps at most this many most-recent items (bounds save size)
