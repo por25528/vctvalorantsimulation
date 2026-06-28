@@ -11,6 +11,7 @@
  */
 
 import { overall } from './playerStats.js';
+import { ratePlayersOverSeries } from './rating.js';
 
 /** Tuning. */
 const BASE = 1500; // starting Elo
@@ -105,5 +106,64 @@ export function computeRankings(world, series) {
     }
   });
 
+  return rows;
+}
+
+/* ----------------------- global PLAYER ranking ----------------------- */
+
+/** Player global-rating tuning. */
+const PLAYER = Object.freeze({
+  RATING2_SCALE: 40, // rating points per (Rating 2.0 − 1.0): a 1.20 season adds +8
+  APPEARANCE_K: 0.3, // points per map played — deep title runs & longevity (capped)
+  APPEARANCE_CAP: 30 // map-count contribution caps here (a long run, not infinite farm)
+});
+
+/**
+ * A per-season-evolving GLOBAL PLAYER RANKING over the rostered pro pool. Pure +
+ * deterministic. It is RESULTS-BASED: a player's base ability (overall) is lifted
+ * by their actual Rating 2.0 across the season's series (so stars on deep-running,
+ * better-built teams — who play more high-rated maps — climb) plus a longevity
+ * term for surviving to the late rounds. Naturally rewards the better-built team,
+ * consistent with the match engine (the same box scores feed it).
+ *
+ * @param {object} world  World { leagues, teamsById, playersById }
+ * @param {Array<object>} series  SeriesRef[] played so far (maps[].boxScore + score)
+ * @returns {Array<{rank:number, playerId:string, rating:number, region:string|null, teamId:string|null}>}
+ */
+export function computePlayerGlobalRanking(world, series) {
+  const players = (world && world.playersById) || {};
+  const teams = (world && world.teamsById) || {};
+  const leagues = (world && world.leagues) || {};
+
+  const regionByTeam = {};
+  for (const region of Object.keys(leagues)) {
+    for (const id of (leagues[region] && leagues[region].teamIds) || []) regionByTeam[id] = region;
+  }
+
+  const ratings = ratePlayersOverSeries(series || []);
+  const rows = [];
+  for (const id of Object.keys(players)) {
+    const p = players[id];
+    if (!p) continue;
+    const c = p.contract || {};
+    // The pro field = rostered players (active + on a team). FAs/retired sit out.
+    if (c.status !== 'active' || !c.teamId) continue;
+    const ovr = overall(p);
+    if (!Number.isFinite(ovr) || ovr <= 0) continue;
+    const rb = ratings.get(id);
+    const r2 = rb ? rb.rating : 0;
+    const maps = rb ? rb.maps : 0;
+    const perf = r2 > 0 ? (r2 - 1.0) * PLAYER.RATING2_SCALE : 0;
+    const longevity = Math.min(maps, PLAYER.APPEARANCE_CAP) * PLAYER.APPEARANCE_K;
+    const teamId = c.teamId;
+    rows.push({
+      playerId: id,
+      rating: Math.round((ovr + perf + longevity) * 10) / 10,
+      region: regionByTeam[teamId] || (teams[teamId] && teams[teamId].region) || null,
+      teamId
+    });
+  }
+  rows.sort((a, b) => b.rating - a.rating || (a.playerId < b.playerId ? -1 : 1));
+  rows.forEach((r, i) => { r.rank = i + 1; });
   return rows;
 }

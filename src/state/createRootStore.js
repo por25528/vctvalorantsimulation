@@ -33,9 +33,10 @@ import { transfersReducer, initialTransfersState } from './slices/transfers.js';
 import { inboxReducer, initialInboxState } from './slices/inbox.js';
 import { revealReducer, initialRevealState } from './slices/reveal.js';
 import { scoutingReducer, initialScoutingState } from './slices/scouting.js';
+import { rankingsReducer, initialRankingsState } from './slices/rankings.js';
 import { uiReducer, initialUiState } from './slices/ui.js';
 
-/** The root reducer over { world, season, events, career, transfers, inbox, reveal, scouting, ui }. */
+/** The root reducer over { world, season, events, career, transfers, inbox, reveal, scouting, rankings, ui }. */
 export const rootReducer = combineReducers({
   world: worldReducer,
   season: seasonReducer,
@@ -45,6 +46,7 @@ export const rootReducer = combineReducers({
   inbox: inboxReducer,
   reveal: revealReducer,
   scouting: scoutingReducer,
+  rankings: rankingsReducer,
   ui: uiReducer
 });
 
@@ -62,6 +64,7 @@ export function buildStore() {
     inbox: initialInboxState,
     reveal: initialRevealState,
     scouting: initialScoutingState,
+    rankings: initialRankingsState,
     ui: initialUiState
   };
   return createStore(rootReducer, initial);

@@ -183,10 +183,16 @@ export const BALANCE = deepFreeze({
       // gap is moderate — enough for a visible growth arc without rosters filling
       // with overall-50 raws that crater the league average.
       ATTR_NOISE: 4, // per-attribute gaussian spread around the base
-      // Per-role share of the intake (weights, normalized). Matches realistic VCT
-      // team composition (duelist/initiator slightly more common than the
-      // dedicated controller/sentinel) so rosters never drift into a role drought.
-      ROLE_WEIGHTS: { Duelist: 0.29, Initiator: 0.28, Controller: 0.22, Sentinel: 0.21 },
+      // Per-role share of the intake (weights, normalized). A real VCT five fields
+      // ONE of each core role (plus a flex fifth), so the intake must replenish all
+      // four roughly evenly — the old 0.29/0.28/0.22/0.21 spread over-produced
+      // Duelists/Initiators and starved Controllers/Sentinels, leaving the market
+      // short of smokes/anchors (competitiveness audit). Rebalanced toward an even
+      // spread with a slight Initiator/Controller lean (the genuinely flexed roles).
+      // Determinism-SAFE: rng.weightedPick consumes exactly ONE stream draw
+      // regardless of the weight values, so the draw COUNT is unchanged — only which
+      // role a given draw resolves to shifts. (Verified: still one weightedPick/newgen.)
+      ROLE_WEIGHTS: { Duelist: 0.24, Initiator: 0.26, Controller: 0.26, Sentinel: 0.24 },
       // P12.1 — peak/decline draw bands (pushed later than the old 23-25 / 27-29)
       PEAK_AGE_MIN: 24, PEAK_AGE_SPAN: 4, // peakAge = 24..27
       DECLINE_AGE_MIN: 28, DECLINE_AGE_SPAN: 4, // declineAge = 28..31
@@ -433,6 +439,46 @@ export const BALANCE = deepFreeze({
       PROMOTE_POTENTIAL_MIN: 79, // … OR they carry at least this potential (a raw, high-ceiling prospect)
       RELEGATE_PER_REGION: 2, // weakest surplus T1 free agents dropped to T2 / region / yr
       RELEGATE_OVERALL_MAX: 67 // only unrostered T1 free agents at/below this overall relegate
+    },
+    // ---- ranked ladder + global ranking (engine/career/ladder/*, rankTier.js, ranking.js) ----
+    // A LARGE deterministic amateur→semipro ladder that lives BENEATH the pro scene
+    // in its own `ladder` namespace (never folded into the T1/T2 worlds). Pros sit
+    // conceptually at the very top; the huge pool below carries Valorant rank tiers
+    // (Iron→Radiant) derived from a skill draw. Built lazily & memoized off the seed
+    // (own `ladder-build` rng namespace) so it never perturbs the T1/T2 streams and
+    // costs nothing until viewed. Kept LEAN (a few fields/record) for a memory-tight
+    // machine. The best ladder climbers feed the pro free-agent pool each off-season.
+    LADDER: {
+      SIZE_PER_REGION: 900, // ranked players generated per region (×4 regions ≈ 3.6k — a "Large" world)
+      // Skill draw: a believable ranked pyramid — the bulk are mid-ladder, with a
+      // thin elite tail that reaches pro-grade (where the pros continue above).
+      SKILL_MEAN: 50, SKILL_STD: 15, SKILL_MIN: 5, SKILL_MAX: 99,
+      // Valorant rank-tier cut points on the 0..100 skill/overall scale (ascending).
+      // Calibrated so a typical T1 pro (overall ≈ 79) reads Immortal and an elite
+      // (≈ 86+) Radiant, T2 (≈ 66) Diamond, and the amateur ladder spreads Iron→Plat.
+      // Each entry is the INCLUSIVE LOWER bound of the named tier.
+      TIERS: [
+        { tier: 'Iron', min: 0 },
+        { tier: 'Bronze', min: 32 },
+        { tier: 'Silver', min: 40 },
+        { tier: 'Gold', min: 48 },
+        { tier: 'Platinum', min: 56 },
+        { tier: 'Diamond', min: 64 },
+        { tier: 'Ascendant', min: 72 },
+        { tier: 'Immortal', min: 78 },
+        { tier: 'Radiant', min: 85 }
+      ],
+      // ---- ladder → pro pipeline (engine/career/ladder/ladderPromotion.js) ----
+      // Each off-season the strongest ladder climbers (skill ≥ PROMOTE_SKILL_MIN)
+      // earn a pro tryout: they enter the T1 free-agent pool (full Player records on
+      // their OWN `ladder-promote` rng namespace, so the T1/T2 transitions stay
+      // byte-identical) where the market signs them next window. A modest trickle so
+      // it deepens the "stronger rises" pipeline without flooding the pro scene.
+      PROMOTE_PER_REGION: 1, // top ladder climbers promoted to the T1 FA pool / region / yr
+      PROMOTE_SKILL_MIN: 84, // a ladder player needs at least this skill to earn a tryout (Immortal+)
+      PROMOTE_AGE_MIN: 17, PROMOTE_AGE_MAX: 22, // a promoted grinder is young (a real prospect, not a journeyman)
+      PROMOTE_POT_HEADROOM: 10, // promoted player's ceiling sits up to this far above their starting overall
+      PROMOTE_ATTR_NOISE: 3 // per-attribute gaussian spread around the role-shaped base
     },
     // ---- coaches & staff (P12.5 + P13 transfer-coach, engine/career/staff.js) ----
     STAFF: {

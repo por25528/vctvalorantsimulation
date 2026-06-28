@@ -61,6 +61,7 @@ import { newSaveMeta } from '../persistence/migrations.js';
 import { exportSave, importSave as deserializeSave } from '../persistence/serializer.js';
 
 import { replaceWorld, setTeam, setPlayer } from './slices/world.js';
+import { setRankSnapshot, resetRankings } from './slices/rankings.js';
 import {
   navigate,
   follow,
@@ -86,7 +87,7 @@ import {
   addScoutFocus,
   resetScouting
 } from './actions.js';
-import { selectSeason, selectSeasonIndex } from './selectors.js';
+import { selectSeason, selectSeasonIndex, selectGlobalRankings } from './selectors.js';
 import { MAX_SCOUT_FOCUSES } from '../engine/career/scouting.js';
 
 /** The default master season seed (deterministic 2026 cycle). */
@@ -185,6 +186,11 @@ function buildSaveGame(store, opts = {}) {
     scouting: {
       focuses: (state.scouting && state.scouting.focuses) || []
     },
+    // r9 — the prior-season global-rank snapshot (tiny id→rank maps), so rankings
+    // deltas survive a save/load. Absent on legacy saves (deltas restart at 0).
+    rankings: state.rankings && state.rankings.season >= 0
+      ? { season: state.rankings.season, teams: state.rankings.teams || {}, players: state.rankings.players || {} }
+      : null,
     settings: {
       followedTeamId: state.ui.followedTeamId || null,
       spoilerFree: state.ui.spoilerFree !== false,
@@ -253,6 +259,14 @@ function hydrateSaveGame(store, saveGame) {
     if (f && f.playerId && typeof f.seasonIndex === 'number') {
       store.dispatch(addScoutFocus(f.playerId, f.seasonIndex));
     }
+  }
+
+  // Restore the prior-season global-rank snapshot (absent on legacy saves → reset).
+  const rk = saveGame.rankings;
+  if (rk && typeof rk.season === 'number' && rk.season >= 0) {
+    store.dispatch(setRankSnapshot({ season: rk.season, teams: rk.teams || {}, players: rk.players || {} }));
+  } else {
+    store.dispatch(resetRankings());
   }
 
   // Restore viewing preferences (default spoiler-free ON for pre-v? saves).
@@ -349,6 +363,7 @@ function installCareer(store, career) {
   store.dispatch(resetTransfers());
   store.dispatch(resetReveal()); // no slot is mid-reveal at the start of a career
   store.dispatch(resetScouting()); // a fresh career starts with no scouting history
+  store.dispatch(resetRankings()); // no prior-season ranking to delta against yet
   store.dispatch(loadInbox([])); // a fresh career starts with an empty news feed
   store.dispatch(initSeasonAction(career.season));
   store.dispatch(setCareer({
@@ -362,6 +377,23 @@ function installCareer(store, career) {
   const teamIds = Object.keys(career.world.teamsById);
   if (teamIds.length > 0) store.dispatch(follow(teamIds[0]));
   store.dispatch(navigate('home'));
+}
+
+/**
+ * Snapshot the CURRENT global team + player ranks into the rankings slice, so the
+ * NEXT season's `selectGlobalRankings` can compute climb/fall deltas against them.
+ * Reads the live (finished-season) state via the same selector the UI uses. Cheap:
+ * stores only id → rank maps. r9.
+ * @param {import('../core/store.js').Store} store
+ * @param {number} season  the season index that just completed
+ */
+function captureRankSnapshot(store, season) {
+  const state = store.getState();
+  const teams = {};
+  for (const r of selectGlobalRankings(state, { scope: 'teams' })) teams[r.id] = r.rank;
+  const players = {};
+  for (const r of selectGlobalRankings(state, { scope: 'players' })) players[r.id] = r.rank;
+  store.dispatch(setRankSnapshot({ season, teams, players }));
 }
 
 /* ------------------------------------------------------------------ */
@@ -541,6 +573,9 @@ export function continueSeason(store, opts = {}) {
     // Pure spectator world: NO team is privileged. Every club — including the one
     // the camera happens to be watching — is subject to the same autonomous AI
     // buy/sell market. The observer removes none of the world's agency.
+    // r9 — snapshot the just-finished season's final global ranks BEFORE rolling
+    // over, so the new season's rankings can show season-to-season movement.
+    captureRankSnapshot(store, career.seasonIndex);
     const next = runCareerOffseason(career);
     store.dispatch(resetReveal()); // a fresh season opens with no slot revealing
     writeCareer(store, next, { newSeason: true });

@@ -312,6 +312,54 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - **Kept observer tools:** the god-mode editor (`editPlayer`/`editTeam`/`healPlayer`) and scouting
   (`scoutPlayer`) — world-shaping, not team management.
 
+## Ranked ladder + global rankings (r9 — `engine/career/{rankTier,ladder/*,ranking}.js`)
+
+- **The competitive pyramid has three layers, each in its OWN namespace** — never
+  folded into `teamsById`/`playersById`: T1 (`buildWorld()`), `world.tier2`
+  (Challengers), and the **ranked LADDER** beneath. The ladder is NOT stored in
+  state or saves: it is rebuilt deterministically from the seed and MEMOIZED by the
+  selector (`ladderMemo` on `[seed, seasonIndex]`), so several thousand lean records
+  (`{id,handle,region,skill,tier,rr}`) cost nothing until viewed and never bloat a
+  save (machine is memory-tight). `buildLadder(seed, season)` uses its own
+  `hashSeed(seed,'ladder-build')` rng and a pure per-(id,season) hash drift — it
+  touches NO T1/T2 stream, so `simSeason(seed)` stays byte-identical (verified hash
+  3580108017 over `buildWorld()`).
+- **`playerRankTier(player)` (rankTier.js) is PURE** — Iron→…→Immortal→Radiant + an
+  RR sub-rating, mapped from `player.skill` (lean rows) else `overall(player)` (full
+  Players). No rng/draws at call time → safe per-row while the UI virtualizes. Cut
+  points live in `BALANCE.CAREER.LADDER.TIERS` (tuned so a typical pro ≈79 reads
+  Immortal, ≈85+ Radiant, T2 ≈66 Diamond).
+- **Ladder → pro pipeline** (`ladder/ladderPromotion.js`, wired in `career.js`
+  `runCareerOffseason` AFTER the T1 + T2 off-seasons): each off-season the strongest
+  ladder climbers (skill ≥ `PROMOTE_SKILL_MIN`, top `PROMOTE_PER_REGION`/region)
+  are fleshed into full young-prospect Players and ADDED to the T1 free-agent pool
+  (where the existing market signs them next window). Runs on its OWN
+  `hashSeed(seed,'ladder-promote',idx)` rng and only APPENDS players, so the T1/T2
+  transitions stay byte-identical; the only downstream effect is next season's market
+  seeing a few more high-ceiling free agents. Mirrors the T2 promotion pattern;
+  `simCareer(seed,n)` stays fully reproducible. A promoted ladder id (`lad-…`) is
+  skipped on later years because it now exists in `playersById` (no double-promote).
+- **Global rankings (results-based, `ranking.js`)**: `computeRankings` (team Elo,
+  pre-existing) + `computePlayerGlobalRanking` (rostered pro pool; overall lifted by
+  the player's actual Rating-2.0 over the season's series + a longevity term, so
+  stars on deep-running, better-built teams climb). Season-to-season movement
+  (`deltaRank`) is measured against the PREVIOUS season's final ranks, snapshotted
+  into the tiny `state.rankings` slice at each rollover (`captureRankSnapshot` in
+  commands.js, persisted in the save; legacy saves restart deltas at 0).
+- **Selector CONTRACT (load-bearing for the UI half)** — in `state/selectors.js`,
+  all robust to empty/early worlds (empty shapes, never throw/NaN):
+  `selectGlobalRankings(state,{scope:'teams'|'players'})` → `[{rank,id,name,region,rating,deltaRank}]`;
+  `selectLadder(state,{tier?,region?,offset,limit})` → `{total, rows:[{rank,id,handle,region,tier,rating,rr}]}`
+  (PAGED — filtered/sliced, never thousands at once); `playerRankTier` re-exported pure.
+  Bare proof-of-data screen: `ui/screens/Ladder.js` (route `'ladder'`).
+- **Newgen role weights** (`BALANCE.CAREER.NEWGEN.ROLE_WEIGHTS`) were rebalanced to a
+  near-even spread (a real five fields one of each role) — the old skew over-produced
+  Duelists/Initiators and starved Controllers/Sentinels. Determinism-SAFE:
+  `rng.weightedPick` consumes exactly ONE draw regardless of the weight values, so
+  the draw COUNT is unchanged — only which role a draw resolves to shifts. (Changing
+  the values DOES change T2-build/newgen role OUTCOMES vs. before, but not T1
+  `simSeason` and not any draw count.)
+
 ## Visual identity — "Mission Control" (styles/)
 
 - The look is a sleek esports-broadcast / control-surface dashboard: deep slate-navy base, an electric

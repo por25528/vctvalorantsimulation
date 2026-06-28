@@ -21,7 +21,9 @@ import { salaryFor } from '../engine/career/offseason/contracts.js';
 import { teamAttractiveness, seasonSuccessScore } from '../engine/career/attractiveness.js';
 import { revealedSeriesByEvent, seriesKey } from '../engine/career/matchdays.js';
 import { ratePlayersOverSeries } from '../engine/career/rating.js';
-import { computeRankings } from '../engine/career/ranking.js';
+import { computeRankings, computePlayerGlobalRanking } from '../engine/career/ranking.js';
+import { playerRankTier, rankTierOrder } from '../engine/career/rankTier.js';
+import { buildLadder } from '../engine/career/ladder/ladderWorld.js';
 import { getRevealedTraits } from '../engine/career/scouting.js';
 import { CP_TABLE } from '../config/cpTable.js';
 import { TIER2_TEAMS_BY_REGION, TIER2_REGION_ORDER } from '../data/seed/tier2.js';
@@ -771,6 +773,138 @@ export const selectTeamRatings = (state) => {
 /** A single team's world-ranking row (rank + rating + region rank + record), or null. */
 export const selectTeamRank = (state, teamId) =>
   teamId ? selectTeamRatings(state).find((r) => r.teamId === teamId) || null : null;
+
+/* -------------------- global rankings (r9 contract) -------------------- */
+
+// Pure rank-tier mapping, re-exported so the UI can call it per ladder row.
+export { playerRankTier, rankTierOrder };
+
+const playerRankingMemo = memoOne((events, teams, players, leagues, revealKey, revealMapRef) => {
+  const world = { leagues: leagues || {}, teamsById: teams || {}, playersById: players || {} };
+  // Spoiler-safe: gate each event's series to the revealed ones (mirrors team ranking).
+  const series = [];
+  for (const e of events || []) {
+    const all = (e.result && e.result.series) || [];
+    const set = revealMapRef ? revealMapRef.get((e.result && e.result.eventId) || e.slotId) : null;
+    if (set) {
+      for (const s of all) if (set.has(seriesKey(s.stageId, s.matchId))) series.push(s);
+    } else {
+      for (const s of all) series.push(s);
+    }
+  }
+  return { key: [events, teams, players, revealKey], value: computePlayerGlobalRanking(world, series) };
+});
+
+/** The live global player ranking (rostered pro pool, results-based). */
+const selectPlayerGlobalRanking = (state) => {
+  const season = selectSeason(state);
+  const events = season ? season.events : null;
+  return playerRankingMemo(
+    events,
+    state.world.teams,
+    state.world.players,
+    state.world.leagues,
+    state.reveal ? state.reveal.dayIndex : -1,
+    revealMap(state)
+  );
+};
+
+/**
+ * The GLOBAL RANKING for the pro scene — teams or players — each row carrying its
+ * season-to-season movement (`deltaRank`: +climbed / −fell, 0 if new or no prior
+ * snapshot). Results-based (team Elo / player Rating-2.0-lifted overall). Robust to
+ * empty/early worlds: returns `[]`, never throws or emits NaN.
+ *
+ * @param {object} state
+ * @param {{ scope?: 'teams'|'players' }} [opts]
+ * @returns {Array<{rank:number, id:string, name:string, region:string|null, rating:number, deltaRank:number}>}
+ */
+export const selectGlobalRankings = (state, opts = {}) => {
+  const scope = opts.scope === 'players' ? 'players' : 'teams';
+  const snap = (state && state.rankings) || { teams: {}, players: {} };
+
+  if (scope === 'players') {
+    const prev = snap.players || {};
+    const rows = selectPlayerGlobalRanking(state);
+    return rows.map((r) => {
+      const p = state.world.players[r.playerId];
+      const prevRank = typeof prev[r.playerId] === 'number' ? prev[r.playerId] : null;
+      return {
+        rank: r.rank,
+        id: r.playerId,
+        name: p ? (p.handle || p.name || r.playerId) : r.playerId,
+        region: r.region || null,
+        rating: r.rating,
+        deltaRank: prevRank == null ? 0 : prevRank - r.rank
+      };
+    });
+  }
+
+  const prev = snap.teams || {};
+  const rows = selectTeamRatings(state);
+  return rows.map((r) => {
+    const team = state.world.teams[r.teamId];
+    const prevRank = typeof prev[r.teamId] === 'number' ? prev[r.teamId] : null;
+    return {
+      rank: r.rank,
+      id: r.teamId,
+      name: team ? team.name : r.teamId,
+      region: r.region || null,
+      rating: r.rating,
+      deltaRank: prevRank == null ? 0 : prevRank - r.rank
+    };
+  });
+};
+
+/* ----------------------------- ranked ladder ---------------------------- */
+
+// The huge ladder is rebuilt deterministically from (seed, season) and memoized,
+// so several thousand records never persist and only cost on first view per season.
+const ladderMemo = memoOne((seed, season) => ({
+  key: [seed, season],
+  value: buildLadder(seed, season)
+}));
+
+/**
+ * A PAGED window onto the huge ranked ladder beneath the pro scene. Never returns
+ * thousands of rows at once — the UI passes offset/limit and virtualizes. Optional
+ * `tier` / `region` filters narrow the set; `rank` and `total` are relative to the
+ * filtered, skill-sorted ordering. Robust to empty/early worlds (no seed yet →
+ * `{ total:0, rows:[] }`).
+ *
+ * @param {object} state
+ * @param {{ tier?:string, region?:string, offset?:number, limit?:number }} [opts]
+ * @returns {{ total:number, rows:Array<{rank:number, id:string, handle:string, region:string, tier:string, rating:number, rr:number}> }}
+ */
+export const selectLadder = (state, opts = {}) => {
+  const career = state && state.career;
+  const seed = career && career.seed != null ? career.seed : null;
+  if (seed == null) return { total: 0, rows: [] };
+
+  const season = (career && typeof career.seasonIndex === 'number') ? career.seasonIndex : 0;
+  const built = ladderMemo(seed, season);
+
+  const tier = opts.tier || null;
+  const region = opts.region || null;
+  const offset = Math.max(0, Math.floor(Number(opts.offset) || 0));
+  const limit = Math.max(0, Math.floor(Number(opts.limit) != null && Number.isFinite(Number(opts.limit)) ? Number(opts.limit) : 50));
+
+  let filtered = built.rows;
+  if (region) filtered = filtered.filter((r) => r.region === region);
+  if (tier) filtered = filtered.filter((r) => r.tier === tier);
+
+  const total = filtered.length;
+  const page = filtered.slice(offset, offset + limit).map((r, i) => ({
+    rank: offset + i + 1,
+    id: r.id,
+    handle: r.handle,
+    region: r.region,
+    tier: r.tier,
+    rating: r.skill,
+    rr: r.rr
+  }));
+  return { total, rows: page };
+};
 
 /**
  * A StageResult from an event by stage id.

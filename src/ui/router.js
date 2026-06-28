@@ -50,6 +50,7 @@ import { Tier2Screen } from './screens/Tier2.js';
 import { PlayerCareer } from './screens/PlayerCareer.js';
 import { AllTimePlayers } from './screens/AllTimePlayers.js';
 import { HallOfFameScreen } from './screens/HallOfFame.js';
+import { LadderScreen } from './screens/Ladder.js';
 
 /**
  * Screen id -> screen render fn (CONTRACTS-UI §5).
@@ -88,7 +89,8 @@ export const ROUTES = Object.freeze({
   career: PlayerCareer,
   legends: AllTimePlayers,
   // Wave 2 (F) — team dynasties / all-time records Hall of Fame.
-  hof: HallOfFameScreen
+  hof: HallOfFameScreen,
+  ladder: LadderScreen
 });
 
 /** The fallback screen id for unknown routes. */
