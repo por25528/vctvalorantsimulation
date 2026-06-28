@@ -1323,6 +1323,86 @@ button {
 .news__when { font-size: var(--fs-xs); color: var(--faint); font-family: var(--font-mono); }
 .news__dot { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
 
+/* ---- World Feed (Wave 2 — Storyteller) ---- */
+.news__lede { margin-top: calc(-1 * var(--sp-2)); margin-bottom: var(--sp-4); }
+
+.worldfeed__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-4);
+}
+.worldfeed__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast), border-color var(--t-fast);
+}
+.worldfeed__chip:hover { background: var(--panel-2); color: var(--text); }
+.worldfeed__chip--active {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+  color: var(--accent);
+}
+.worldfeed__chip-count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--faint);
+  background: var(--panel-2);
+  padding: 0 6px;
+  border-radius: 999px;
+}
+.worldfeed__chip--active .worldfeed__chip-count { color: var(--accent); background: var(--bg); }
+
+.worldfeed { gap: var(--sp-2); }
+.worldfeed__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--r-2);
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.worldfeed__item--link { cursor: pointer; }
+.worldfeed__item--link:hover { background: var(--panel-2); }
+.worldfeed__item--headline { border-left-color: var(--cp); }
+.worldfeed__item--good { border-left-color: var(--win); }
+.worldfeed__item--bad { border-left-color: var(--loss); }
+.worldfeed__item--neutral { border-left-color: var(--border); }
+.worldfeed__item--story { background: var(--panel-2); border-color: var(--border); }
+.worldfeed__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  margin-top: 1px;
+  color: var(--accent);
+}
+.worldfeed__item--good .worldfeed__icon { color: var(--win); }
+.worldfeed__item--bad .worldfeed__icon { color: var(--loss); }
+.worldfeed__item--headline .worldfeed__icon { color: var(--cp); }
+.worldfeed__body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
+.worldfeed__headline { font-size: var(--fs-sm); color: var(--text); font-weight: var(--fw-medium); }
+.worldfeed__blurb { font-size: var(--fs-xs); color: var(--muted); line-height: 1.4; }
+.worldfeed__era {
+  flex: 0 0 auto;
+  font-size: var(--fs-xs);
+  color: var(--faint);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  padding-top: 1px;
+}
+
 /* sidebar unread badge */
 .sidebar__badge {
   margin-left: auto;
@@ -2002,10 +2082,19 @@ button {
   border-left: 2px solid var(--border);
   border-radius: 0 var(--r-1) var(--r-1) 0;
 }
+.worldhub__feed-item { display: flex; align-items: flex-start; gap: var(--sp-2); }
 .worldhub__feed-item--headline { border-left-color: var(--cp); }
 .worldhub__feed-item--good { border-left-color: var(--win); }
 .worldhub__feed-item--bad { border-left-color: var(--loss); }
+.worldhub__feed-item--link { cursor: pointer; transition: background var(--t-fast); }
+.worldhub__feed-item--link:hover { background: var(--panel-2); }
+.worldhub__feed-icon { flex: 0 0 auto; display: inline-flex; margin-top: 2px; color: var(--accent); }
+.worldhub__feed-item--good .worldhub__feed-icon { color: var(--win); }
+.worldhub__feed-item--bad .worldhub__feed-icon { color: var(--loss); }
+.worldhub__feed-item--headline .worldhub__feed-icon { color: var(--cp); }
+.worldhub__feed-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .worldhub__feed-text { font-size: var(--fs-sm); color: var(--text); }
+.worldhub__feed-era { font-size: var(--fs-xs); color: var(--faint); font-family: var(--font-mono); }
 
 /* ---- Calendar · timeline ---- */
 .calendar__cursor { background: var(--panel-3); color: var(--muted); border-color: var(--border); }

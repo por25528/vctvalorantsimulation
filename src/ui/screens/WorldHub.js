@@ -74,7 +74,7 @@ export function WorldHub(state, dispatch, store) {
       peopleToWatchPanel(state, goPlayer),
       nowNextPanel(state, pulse, goTeam, go),
       recentResultsPanel(state, goTeam),
-      happeningsPanel(state, go)
+      happeningsPanel(state, go, goTeam, goPlayer)
     )
   );
 }
@@ -460,23 +460,38 @@ function recentResultsPanel(state, goTeam) {
   return panel('Recent Results', 'trophy', body);
 }
 
-/** Latest happenings feed — recent headlines + transfer milestones. */
-function happeningsPanel(state, go) {
-  const items = latestHappenings(state, 8);
+/** The world's storylines feed — cross-season arcs blended with live news. */
+function happeningsPanel(state, go, goTeam, goPlayer) {
+  const items = latestHappenings(state, 7);
   const body = items.length
     ? h(
         'ul',
         { class: 'worldhub__feed' },
-        items.map((it) =>
-          h(
+        items.map((it) => {
+          const onClick = it.playerId
+            ? () => goPlayer(it.playerId, it.teamId)
+            : it.teamId
+              ? () => goTeam(it.teamId)
+              : undefined;
+          return h(
             'li',
-            { key: it.id, class: classNames('worldhub__feed-item', `worldhub__feed-item--${it.tone}`) },
-            h('span', { class: 'worldhub__feed-text' }, it.headline)
-          )
-        )
+            {
+              key: it.id,
+              class: classNames('worldhub__feed-item', `worldhub__feed-item--${it.tone}`, onClick && 'worldhub__feed-item--link'),
+              onClick
+            },
+            h('span', { class: 'worldhub__feed-icon' }, Icon(it.icon || 'inbox', { size: 15 })),
+            h(
+              'span',
+              { class: 'worldhub__feed-main' },
+              h('span', { class: 'worldhub__feed-text' }, it.headline),
+              it.era ? h('span', { class: 'worldhub__feed-era' }, it.era) : null
+            )
+          );
+        })
       )
     : empty('The world is quiet — step time forward to make news.');
-  return panel('Latest Happenings', 'inbox', body, items.length
-    ? h('button', { type: 'button', class: 'link worldhub__more', onClick: () => go('news') }, 'Open inbox →')
+  return panel('World Storylines', 'inbox', body, items.length
+    ? h('button', { type: 'button', class: 'link worldhub__more', onClick: () => go('news') }, 'Open the World Feed →')
     : null);
 }

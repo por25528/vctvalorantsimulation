@@ -123,6 +123,31 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   link still resolves) but are no longer in the nav. App-internal deep links (`openEvent` in
   `state/commands.js`, Calendar, HomeInbox) navigate to `'tournament'` with a `view` param.
 
+## Storyteller — narrative engine & World Feed (`engine/career/storylines.js`, `ui/worldFeed.js`)
+
+- **Two narrative layers, blended at render time.** `engine/career/news.js` is the *live* news layer:
+  pure generators (`eventNews`/`awardNews`/`offseasonNews`/`injuryNews`) fired from
+  `state/commands.js` as slots reveal, stamped + capped into the inbox slice. `engine/career/
+  storylines.js` is the *cross-season* layer: `deriveStorylines(history, world, {offseasonReport})`
+  mines the FROZEN `state.career.history[]` ledger for arcs the moment-by-moment feed can't see —
+  dynasties, rivalries (title-deciding pairs via `finalStandings[0]`/`[1]`), breakout arcs
+  (RotY→MVP from `history[].awards`), repeat-MVP milestones, upsets (champion's seed in
+  `championsField`), comebacks/declines (`finalStandings` position swings), retirement tributes
+  (decorated names from the latest off-season report).
+- **Determinism boundary.** Storylines read the frozen history/career layer ONLY — never the match/
+  season engines — so results stay byte-identical. Headline VARIETY is drawn from a dedicated
+  `hashSeed('storyline', …)` namespace, so it can never perturb a match/season rng stream. No
+  `Math.random`/`Date`. Storylines are DERIVED at render time (not stored), so they never change
+  `state.career`'s shape.
+- **`ui/worldFeed.js` is the shared derive** for the News screen ("World Feed", route `news`) and the
+  WorldHub happenings panel. `buildWorldFeed(state)` unifies storylines + live inbox into grouped
+  items (titles/rivalries/stars/results/moves/drama/farewells), de-duping a crowned season's live
+  `champion` line in favour of the richer `crown` story. The News timeline is chronological
+  (`seasonIndex` desc, then weight); `happeningsFeed`/`latestHappenings` re-rank by a drama+recency
+  priority so big arcs lead the hub highlight reel. The News category filter lives in the route
+  params (`navigate('news', {filter})`) — no UI-slice change. Story icons (`crown`/`swords`/`flame`/
+  `bolt`/`decline`) live in `components/Icon.js`.
+
 ## In-map momentum & round-stakes pressure (`engine/match/momentum.js`)
 
 - **`src/engine/match/momentum.js`** is a pure module with four exports:

@@ -29,7 +29,7 @@ import { Icon } from './Icon.js';
 export const NAV_ITEMS = [
   { screen: 'home', label: 'God View', icon: 'home', glyph: '⌂', section: 'watch' },
   { screen: 'matchday', label: 'Match Day', icon: 'play', glyph: '▶', section: 'watch' },
-  { screen: 'news', label: 'Inbox', icon: 'inbox', glyph: '✉', section: 'watch' },
+  { screen: 'news', label: 'World Feed', icon: 'inbox', glyph: '✉', section: 'watch' },
   // Unified Tournament tab (group stage + playoff bracket). Label pinned by tests.
   { screen: 'tournament', label: 'Tournament', icon: 'bracket', glyph: '⑂', section: 'competition' },
   { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦', section: 'competition' },
