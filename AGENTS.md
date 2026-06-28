@@ -110,6 +110,33 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   determinism) + all existing match tests (roundSim, mapSim, matchSim, duel, traits, determinism)
   pass with the new system in place.
 
+## Match replay timeline (`engine/match/mapSim.js` + `ui/replayDerive.js`)
+
+- **OPTIONAL, additive, deterministic — same pattern as momentum/abilities.**
+  `simMap(..., opts)` records a per-round `MapResult.replay` ONLY when
+  `opts.replay` is true; `simSeries(..., ctx)` threads `ctx.replay` down so a
+  Series carries `maps[].replay`. Both are built purely from values the round loop
+  ALREADY computed (running score, the true decay-smoothed momentum scalars
+  BEFORE/AFTER the round, ult-ready/fire flags, buy tier, winner/end/clutch) — so
+  they consume **no rng** and the default `MapResult`/`Series` shape is byte-identical
+  to before. `tests/unit/replay.test.mjs` proves it: a replay run minus its `replay`
+  fields deep-equals the plain run. Do NOT add rng-consuming work to the replay path.
+- **The engine replay is not stored by the season sim** (it would bloat saves), so
+  the UI does NOT depend on it. `src/ui/replayDerive.js` `deriveMapReplay(mapResult)`
+  is the single view-model builder: it uses `mapResult.replay` when present, else
+  **reconstructs the exact same timeline** from the persisted `maps[].rounds`
+  (+comps+sideStartA) by re-running the pure engine fns (`updateMomentum`,
+  `createUltState`/`advanceUltState`) — momentum/ult are fully recoverable from the
+  round logs, so the viewer works on plain season data. It replicates `mapSim`'s
+  private `sideForA`/`mapOver` schedules; if those change in `mapSim.js`, mirror them
+  here. Output: per-round beats (score, true momentum, swing, econ, ult, ecoUpset,
+  pistol/OT/matchPoint/decided flags, firstBlood/clutch/ace, `tags[]`) + a summary.
+- **Viewer**: `ui/components/ReplayTimeline.js` (true-momentum strip + key-beats feed)
+  is reveal-gated by the `index`/`playing` cursor like the other match components, so
+  spoiler-free mode never leaks future rounds. It is rendered by `screens/Match.js`
+  (route id `'match'`, already wired from Bracket/MatchDay/Champions via `openSeries`).
+  BEM block `.replay` in `styles/main.css`; colours come from theme tokens only.
+
 ## Tier 2 / Challengers ecosystem (`engine/career/tier2/*`)
 
 - **T2 lives in a SEPARATE `world.tier2` namespace**, never folded into the

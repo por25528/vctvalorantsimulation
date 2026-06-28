@@ -86,13 +86,18 @@ function teamIdOf(team, slot) {
  * @param {Record<string, Player>} players  playerId -> Player lookup, threaded down.
  * @param {number} bestOf  series length (1, 3 or 5; others fall back to Bo3).
  * @param {number} seed   integer seed; the whole series derives from createRng(seed).
- * @param {{ coachChemA?:number, coachChemB?:number }} [ctx]  optional coach chemistry lifts (P12.5)
+ * @param {{ coachChemA?:number, coachChemB?:number, replay?:boolean }} [ctx]  optional
+ *   coach chemistry lifts (P12.5) and a `replay` flag. When `replay:true`, every
+ *   played map carries a per-round `replay` timeline (`MapResult.replay`). The
+ *   flag is rng-free, so `seed` reproduces byte-identical maps/box-scores/score
+ *   with or without it (the replay is purely an extra, additive field).
  * @returns {Series}
  */
 export function simSeries(teamA, teamB, players, bestOf, seed, ctx = {}) {
   const rng = createRng(seed);
   const boN = Number.isInteger(bestOf) && bestOf > 0 ? bestOf : 3;
   const target = winsToClinch(boN);
+  const mapOpts = ctx && ctx.replay ? { replay: true } : undefined;
 
   const teamAId = teamIdOf(teamA, 'A');
   const teamBId = teamIdOf(teamB, 'B');
@@ -125,7 +130,7 @@ export function simSeries(teamA, teamB, players, bestOf, seed, ctx = {}) {
     // the opening map, then they swap). This is a fixed, deterministic schedule.
     const sideStartA = i % 2 === 0 ? 'atk' : 'def';
 
-    const result = simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, rng, chemA, chemB);
+    const result = simMap(teamA, teamB, players, mapId, compA, compB, sideStartA, rng, chemA, chemB, mapOpts);
     maps.push(result);
 
     if (result.winner === 'A') score.A += 1;
