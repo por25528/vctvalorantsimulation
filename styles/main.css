@@ -1786,6 +1786,227 @@ button {
 .home__news-card { display: flex; flex-direction: column; gap: var(--sp-3); }
 .home__news-text { font-size: var(--fs-sm); color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
 
+/* ===================================================== WORLD HUB (God View) === */
+/* The spectator home: a time-machine hero + a grid of world-at-a-glance panels.
+ * Consumes the semantic theme tokens only — no hardcoded palette. */
+.worldhub__title { display: flex; align-items: center; gap: var(--sp-2); }
+
+/* ---- hero / time machine ---- */
+.worldhub__hero {
+  margin: var(--sp-4) 0 var(--sp-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  background: linear-gradient(135deg, var(--panel-2), var(--panel));
+  border-color: var(--border);
+}
+.worldhub__pulse { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap; }
+.worldhub__season { font-size: var(--fs-2xl); font-weight: var(--fw-bold); letter-spacing: 0.01em; }
+.worldhub__phase {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+}
+.worldhub__phase-meta {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+.worldhub__lens {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-left: auto;
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-pill);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+.worldhub__lens:hover { border-color: var(--accent); }
+.worldhub__lens:focus-visible { outline: none; box-shadow: var(--ring); }
+.worldhub__lens-icon { color: var(--accent); flex: 0 0 auto; }
+.worldhub__lens-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.worldhub__lens-name { font-weight: var(--fw-semibold); }
+.worldhub__lens-rank { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+.worldhub__lens--none { margin-left: auto; color: var(--muted); background: var(--panel-3); border: 1px solid var(--border); padding: var(--sp-1) var(--sp-3); border-radius: var(--r-pill); cursor: default; }
+.worldhub__champion {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--cp-soft);
+  border: 1px solid var(--cp-soft);
+  border-radius: var(--r-2);
+}
+.worldhub__champion-icon { color: var(--cp); flex: 0 0 auto; }
+.worldhub__champion-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.worldhub__champion-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.worldhub__champion-name { font-size: var(--fs-lg); font-weight: var(--fw-bold); }
+
+.worldhub__progress { display: flex; align-items: center; gap: var(--sp-3); }
+.worldhub__progress-bar {
+  position: relative;
+  flex: 1 1 auto;
+  height: 10px;
+  background: var(--inset);
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.worldhub__progress-fill { height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width var(--t-base); }
+.worldhub__progress-label { font-size: var(--fs-xs); color: var(--muted); white-space: nowrap; }
+
+.worldhub__controls { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.worldhub__step { font-size: var(--fs-md); }
+.worldhub__play--on { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); }
+.worldhub__speeds { display: inline-flex; margin-left: auto; border: 1px solid var(--border); border-radius: var(--r-pill); overflow: hidden; }
+.worldhub__speed {
+  padding: var(--sp-1) var(--sp-3);
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+.worldhub__speed:hover { background: var(--panel-3); color: var(--text); }
+.worldhub__speed--active { background: var(--accent); color: var(--accent-contrast); }
+.worldhub__speed[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+/* ---- panel grid ---- */
+.worldhub__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--sp-4);
+  align-items: start;
+}
+.worldhub__panel { display: flex; flex-direction: column; gap: var(--sp-2); }
+.worldhub__panel-title { display: flex; align-items: center; gap: var(--sp-2); margin-bottom: var(--sp-1); }
+.worldhub__panel-icon { color: var(--accent); flex: 0 0 auto; }
+.worldhub__empty { margin: var(--sp-2) 0; }
+.worldhub__more { align-self: flex-start; margin-top: var(--sp-1); font-size: var(--fs-sm); }
+
+/* shared clickable team chip (tag + name) */
+.worldhub__team {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.worldhub__team:hover .worldhub__team-name { color: var(--accent); }
+.worldhub__team:focus-visible { outline: none; box-shadow: var(--ring); border-radius: var(--r-1); }
+.worldhub__team-tag { flex: 0 0 auto; font-family: var(--font-mono); }
+.worldhub__team-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- power ranking ---- */
+.worldhub__rank { list-style: none; display: flex; flex-direction: column; gap: 2px; counter-reset: rank; }
+.worldhub__rank-item {
+  display: grid;
+  grid-template-columns: 1.6em 1fr auto auto;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-1);
+}
+.worldhub__rank-item:hover { background: var(--panel-3); }
+.worldhub__rank-item--me { background: var(--accent-soft); }
+.worldhub__rank-pos { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--faint); text-align: right; }
+.worldhub__rank-region { font-size: var(--fs-xs); color: var(--muted); }
+.worldhub__rank-rating { font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--text); }
+
+/* ---- region leaders ---- */
+.worldhub__regions { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.worldhub__region {
+  display: grid;
+  grid-template-columns: 5.5em 1fr auto;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-1);
+}
+.worldhub__region:hover { background: var(--panel-3); }
+.worldhub__region-name { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.worldhub__region-record { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+
+/* ---- people to watch ---- */
+.worldhub__people { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.worldhub__person-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  width: 100%;
+  padding: var(--sp-2);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-2);
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.worldhub__person-link:hover { background: var(--panel-3); border-color: var(--border); }
+.worldhub__person-link:focus-visible { outline: none; box-shadow: var(--ring); }
+.worldhub__person-main { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.worldhub__person-name { font-weight: var(--fw-semibold); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.worldhub__person-role { font-size: var(--fs-xs); color: var(--muted); }
+.worldhub__person-meta { display: flex; align-items: center; gap: var(--sp-2); flex: 0 0 auto; }
+.worldhub__person-team { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); }
+.worldhub__person-note { font-size: var(--fs-xs); color: var(--faint); white-space: nowrap; }
+
+/* ---- now & next fixtures ---- */
+.worldhub__fixtures { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.worldhub__fixture {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-1);
+  background: var(--panel-2);
+}
+.worldhub__fixture--done { opacity: 0.85; }
+.worldhub__fixture-side { background: transparent; border: 0; padding: 0; cursor: pointer; font: inherit; }
+.worldhub__fixture-side:first-child { justify-self: start; }
+.worldhub__fixture-side:last-child { justify-self: end; }
+.worldhub__fixture-side[disabled] { cursor: default; }
+.worldhub__fixture-side--win .worldhub__team-tag { color: var(--win); border-color: var(--win-soft); background: var(--win-soft); }
+.worldhub__fixture-score { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; }
+.worldhub__next { font-size: var(--fs-sm); color: var(--muted); line-height: var(--lh-base); margin: 0; }
+.worldhub__next-name { color: var(--text); font-weight: var(--fw-semibold); }
+
+/* ---- recent results ---- */
+.worldhub__results { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.worldhub__result { display: flex; flex-direction: column; gap: 2px; }
+.worldhub__result-event { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.worldhub__result-winner { display: flex; align-items: center; gap: var(--sp-2); flex-wrap: wrap; }
+.worldhub__result-trophy { color: var(--cp); flex: 0 0 auto; }
+.worldhub__result-runner { font-size: var(--fs-xs); color: var(--faint); }
+
+/* ---- happenings feed ---- */
+.worldhub__feed { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.worldhub__feed-item {
+  padding: var(--sp-1) var(--sp-2);
+  border-left: 2px solid var(--border);
+  border-radius: 0 var(--r-1) var(--r-1) 0;
+}
+.worldhub__feed-item--headline { border-left-color: var(--cp); }
+.worldhub__feed-item--good { border-left-color: var(--win); }
+.worldhub__feed-item--bad { border-left-color: var(--loss); }
+.worldhub__feed-text { font-size: var(--fs-sm); color: var(--text); }
+
 /* ---- Calendar · timeline ---- */
 .calendar__cursor { background: var(--panel-3); color: var(--muted); border-color: var(--border); }
 .calendar__timeline { list-style: none; display: flex; flex-direction: column; gap: var(--sp-3); }

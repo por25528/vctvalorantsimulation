@@ -22,7 +22,7 @@
 
 import { selectRoute } from '../state/selectors.js';
 
-import { HomeInbox } from './screens/HomeInbox.js';
+import { WorldHub } from './screens/WorldHub.js';
 import { Calendar } from './screens/Calendar.js';
 import { StandingsScreen } from './screens/Standings.js';
 import { BracketScreen } from './screens/Bracket.js';
@@ -54,7 +54,7 @@ import { Tier2Screen } from './screens/Tier2.js';
  * @type {Record<string, (state:object, dispatch:Function, store?:object) => import('./render.js').VNode>}
  */
 export const ROUTES = Object.freeze({
-  home: HomeInbox,
+  home: WorldHub,
   matchday: MatchDayScreen,
   calendar: Calendar,
   tournament: TournamentScreen,
