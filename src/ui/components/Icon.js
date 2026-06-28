@@ -80,7 +80,9 @@ const SHAPES = {
   // medical cross (injury marker)
   cross: () => [h('path', { d: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z', fill: 'currentColor', stroke: 'none' })],
   // crown (all-time legends marker)
-  crown: () => [path('M4 8l3.5 3L12 6l4.5 5L20 8l-1.5 10h-13z'), path('M5.5 18h13')]
+  crown: () => [path('M4 8l3.5 3L12 6l4.5 5L20 8l-1.5 10h-13z'), path('M5.5 18h13')],
+  // hall / institution (pillared building — Hall of Fame)
+  hall: () => [path('M3.5 9 12 4l8.5 5'), path('M4 9.5h16'), path('M6 10v8'), path('M12 10v8'), path('M18 10v8'), path('M3.5 20h17')]
 };
 
 /** Build a stroked `<path>` child (the icon default style). */

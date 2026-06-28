@@ -18,16 +18,19 @@ import {
   selectPlayer,
   selectSeason,
   selectFollowedTeam,
-  selectTeamTrophies,
   selectTeamRank
 } from '../../state/selectors.js';
+import { deriveTeamDynasty } from '../dynastyDerive.js';
 import { REGION_LABELS } from '../eventFormats.js';
 import { eventLabel } from '../eventFormats.js';
 
 /** The screen id (route key) this screen serves. */
 export const SCREEN_ID = 'team';
 
-/** Trophy display per event type (most prestigious first). */
+/**
+ * Trophy display per event type (most prestigious first). The colourful glyphs
+ * are the one intentional emoji exception (the trophy cabinet) — see AGENTS.md.
+ */
 const TROPHY_META = [
   ['champions', { glyph: '🏆', label: 'World Champion' }],
   ['masters', { glyph: '🥇', label: 'Masters' }],
@@ -59,7 +62,7 @@ export function TeamScreen(state, dispatch, store) {
   const season = selectSeason(state);
   const groups = teamSeasonSeries(season, team.id);
   const record = seasonRecord(groups, team.id);
-  const trophies = selectTeamTrophies(state, team.id);
+  const dynasty = deriveTeamDynasty(state, team.id);
   const rank = selectTeamRank(state, team.id);
 
   const followed = selectFollowedTeam(state);
@@ -71,7 +74,7 @@ export function TeamScreen(state, dispatch, store) {
     'section',
     { class: 'screen screen--team team', 'data-team': team.id },
     teamHeader(team, record, isFollowed, onFollow, rank),
-    trophies.total > 0 ? trophyCabinet(trophies) : null,
+    dynasty.hasHistory ? dynastySection(dynasty) : null,
     rosterSection(state, team, dispatch),
     seasonSeriesSection(state, team.id, groups, dispatch)
   );
@@ -119,43 +122,104 @@ function teamHeader(team, record, isFollowed, onFollow, rank) {
   );
 }
 
-/* -------------------------- trophy cabinet ------------------------- */
+/* ------------------------- dynasty & cabinet ----------------------- */
 
-/** The trophy cabinet: title counts by type + a roll of each title won. */
-function trophyCabinet(trophies) {
-  const chips = TROPHY_META.filter(([type]) => (trophies.byType[type] || 0) > 0).map(([type, meta]) =>
+/**
+ * The dynasty panel: the club's honours (current prestige + accolade chips), the
+ * by-type Trophy Cabinet counts, and a per-season TITLE + PRESTIGE timeline
+ * (each season's glory as a bar, with a crown on world-title years).
+ * Retains the `team__cabinet` class + "Trophy Cabinet" label (kept stable for
+ * the observer test) inside the richer dynasty frame.
+ *
+ * @param {ReturnType<import('../dynastyDerive.js').deriveTeamDynasty>} d
+ */
+function dynastySection(d) {
+  const chips = TROPHY_META.filter(([type]) => (d.byType[type] || 0) > 0).map(([type, meta]) =>
     h(
       'div',
       { key: type, class: classNames('team__trophy', `team__trophy--${type}`) },
       h('span', { class: 'team__trophy-glyph' }, meta.glyph),
-      h('span', { class: 'team__trophy-count' }, `×${trophies.byType[type]}`),
+      h('span', { class: 'team__trophy-count' }, `×${d.byType[type]}`),
       h('span', { class: 'team__trophy-label' }, meta.label)
-    )
-  );
-
-  const items = trophies.list.map((t, i) =>
-    h(
-      'li',
-      { key: `${t.seasonIndex}-${t.slotId}-${t.region || ''}-${i}`, class: 'team__title-item' },
-      h('span', { class: 'team__title-season' }, `S${t.seasonIndex + 1}`),
-      h('span', { class: 'team__title-glyph' }, glyphFor(t.type)),
-      h('span', { class: 'team__title-name' }, eventLabel({ slotId: t.slotId, region: t.region }))
     )
   );
 
   return h(
     'section',
-    { class: 'panel team__cabinet' },
+    { class: 'panel team__cabinet team__dynasty' },
     h(
       'header',
       { class: 'panel__head' },
-      h('h2', { class: 'panel__title' }, `Trophy Cabinet — ${trophies.total} ${trophies.total === 1 ? 'title' : 'titles'}`)
+      h('h2', { class: 'panel__title' }, `Trophy Cabinet — ${d.total} ${d.total === 1 ? 'title' : 'titles'}`),
+      d.weighted ? h('span', { class: 'team__dynasty-weight', title: 'Weighted prestige value of all titles' }, `${d.weighted} pts`) : null
     ),
     h(
       'div',
       { class: 'panel__body' },
+      honoursRow(d),
       h('div', { class: 'team__trophies' }, ...chips),
-      h('ul', { class: 'team__titles' }, ...items)
+      dynastyTimeline(d.timeline)
+    )
+  );
+}
+
+/** Current live prestige + plain-language accolade chips. */
+function honoursRow(d) {
+  if (d.reputation == null && !d.accolades.length) return null;
+  return h(
+    'div',
+    { class: 'team__dynasty-honours' },
+    d.reputation != null
+      ? h(
+          'div',
+          { class: 'team__dynasty-prestige', title: 'Living reputation across the world' },
+          h('span', { class: 'team__dynasty-prestige-kicker' }, 'Prestige'),
+          h('span', { class: 'team__dynasty-prestige-value' }, String(Math.round(d.reputation)))
+        )
+      : null,
+    d.accolades.length
+      ? h(
+          'ul',
+          { class: 'team__dynasty-accolades' },
+          ...d.accolades.map((a, i) => h('li', { key: i, class: 'team__dynasty-accolade' }, a))
+        )
+      : null
+  );
+}
+
+/** Per-season title + prestige timeline, newest season first. */
+function dynastyTimeline(timeline) {
+  if (!timeline.length) return null;
+  return h(
+    'div',
+    { class: 'team__timeline' },
+    h('h3', { class: 'team__timeline-title' }, 'Dynasty Timeline'),
+    h(
+      'ul',
+      { class: 'team__timeline-list' },
+      ...timeline.map((row) =>
+        h(
+          'li',
+          {
+            key: row.seasonIndex,
+            class: classNames('team__timeline-row', row.isChampion && 'team__timeline-row--champ')
+          },
+          h('span', { class: 'team__timeline-season' }, `S${row.seasonIndex + 1}`),
+          h(
+            'span',
+            { class: 'team__timeline-bar', 'aria-hidden': 'true' },
+            h('span', { class: 'team__timeline-fill', style: { width: `${Math.max(4, row.pct)}%` } })
+          ),
+          h(
+            'span',
+            { class: 'team__timeline-glyphs' },
+            ...row.titles.map((t, i) =>
+              h('span', { key: i, class: 'team__timeline-glyph', title: eventLabel({ slotId: t.slotId, region: t.region }) }, glyphFor(t.type))
+            )
+          ),
+          h('span', { class: 'team__timeline-count' }, `${row.titleCount}${row.current ? ' · live' : ''}`)
+        )
+      )
     )
   );
 }

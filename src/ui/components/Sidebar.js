@@ -35,6 +35,7 @@ export const NAV_ITEMS = [
   { screen: 'calendar', label: 'Calendar', icon: 'calendar', glyph: '▦', section: 'competition' },
   { screen: 'cp', label: 'CP Race', icon: 'target', glyph: '◈', section: 'competition' },
   { screen: 'champions', label: 'Champions', icon: 'trophy', glyph: '♚', section: 'competition' },
+  { screen: 'hof', label: 'Hall of Fame', icon: 'hall', glyph: '♛', section: 'competition' },
   { screen: 'awards', label: 'Awards', icon: 'medal', glyph: '✦', section: 'competition' },
   { screen: 'leaders', label: 'Leaders', icon: 'star', glyph: '★', section: 'competition' },
   { screen: 'legends', label: 'All-Time', icon: 'crown', glyph: '♛', section: 'competition' },
