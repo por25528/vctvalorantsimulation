@@ -71,6 +71,18 @@ This file is the project's committed home for project-intrinsic agent knowledge:
 - Screens are pure `(state, dispatch[, store]) => VNode`. The router (`ui/router.js`) maps a
   `screen` id to a render fn via `ROUTES`; `ui/components/Sidebar.js` `NAV_ITEMS` is the primary
   nav, and `NAV_PARENT` maps contextual/legacy route ids to the nav item that should highlight.
+- **The `home` route is the "God View" spectator hub** (`ui/screens/WorldHub.js`, nav label
+  "World"). It is a hands-off world-at-a-glance dashboard: a TIME-MACHINE hero (Step Forward /
+  Sim Event / Auto-Play + speed) that drives `continueSeason(store, { noNav:true })` and
+  `setAutoplay`/`setAutoplayPace` so the world advances IN PLACE (no navigation), plus panels for
+  the power ranking, region leaders, people to watch, now/next fixtures, recent results, and the
+  happenings feed. All presentation math lives in the pure `ui/homeDashboard.js` (reads truth only
+  through selectors; every derivation guarded for empty/early worlds). `recentResults` reads
+  placements via `selectPlacements`, which returns `[]` for a slot still being revealed — so it is
+  spoiler-safe by construction. The legacy FM inbox home (`ui/screens/HomeInbox.js`) is no longer
+  routed but kept as a module (still rendered directly by its tests). The smoke test asserts the
+  home screen shows the followed team's name — `WorldHub` guarantees this via the hero "Watching"
+  lens chip (`followedLens`), which is also the spectator's window into the world.
 - **Tournament unifies group stage + playoffs.** The single `tournament` nav item is the entry
   point for an event; `ui/screens/Tournament.js` renders shared chrome (title + `EventPicker` +
   Group Stage/Playoffs sub-tabs) and switches body on the `view` route param
