@@ -57,6 +57,7 @@ import { driftChemistry } from './chemistry.js';
 import { attachTier2 } from './tier2/tier2World.js';
 import { runTier2Offseason } from './tier2/tier2Offseason.js';
 import { emptyLegacy, accumulateSeason } from './playerLegacy.js';
+import { runLadderOffseason } from './ladder/ladderPromotion.js';
 
 const D = BALANCE.CAREER.DYNAMICS;
 const CL = BALANCE.CAREER.CONTRACT;
@@ -187,7 +188,15 @@ export function runCareerOffseason(state, opts = {}) {
   const { t1World: t1AfterPromotion, tier2World: nextTier2, report: tier2Report } =
     runTier2Offseason(postWorld, state.world.tier2, t2Rng, { season: state.seasonIndex });
 
-  const restedWorld = restForNewSeason(t1AfterPromotion);
+  // r9 — LADDER → PRO pipeline, on yet another DEDICATED rng so the T1/T2
+  // transitions above stay byte-identical. The strongest amateur-ladder climbers
+  // enter the T1 free-agent pool (where the market signs them next window), so
+  // talent rises through the ranks all the way into the pro scene.
+  const ladderRng = createRng(hashSeed(state.seed, 'ladder-promote', state.seasonIndex));
+  const { t1World: t1AfterLadder, report: ladderReport } =
+    runLadderOffseason(t1AfterPromotion, state.seed, state.seasonIndex, ladderRng);
+
+  const restedWorld = restForNewSeason(t1AfterLadder);
   const restedWithT2 = nextTier2
     ? Object.freeze({ ...restedWorld, tier2: restTier2ForNewSeason(nextTier2) })
     : restedWorld;
@@ -202,6 +211,7 @@ export function runCareerOffseason(state, opts = {}) {
     offseason: report,
     tier2Offseason: tier2Report || null,
     playerLegacy,
+    ladderOffseason: ladderReport || null,
     phase: 'inSeason'
   });
 }
