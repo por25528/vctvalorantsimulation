@@ -1,23 +1,19 @@
 /**
- * ui/screens/Finances.js — GM budget + payroll management (id 'finances').
+ * ui/screens/Finances.js — a club's books, read-only (id 'finances').
  *
- * Pure `(state, dispatch, store) => VNode`. Shows the followed team's:
+ * Pure `(state, dispatch, store) => VNode`. A spectator's window into the
+ * currently-viewed club's finances — nothing to manage, just numbers to stare
+ * at as the autonomous world runs:
  *   - Current budget reserve
  *   - Projected season income (sponsor + prize) and wage bill
- *   - Per-player payroll breakdown with Release and Sell-to-AI actions
+ *   - Per-player payroll breakdown (salary + contract length)
  *   - Transfer-window balance (fees received vs. fees spent this window)
  *
- * Release calls the existing releasePlayer command (consistent cap/penalty).
- * Sell uses the new sellPlayer command which finds the richest willing AI buyer
- * via transferFee from the existing valuation — no new numbers invented.
- * Roster guard: both actions refuse to drop below MIN_ROSTER.
+ * No GM actions: the observer does not sell, release, or manage anyone — every
+ * roster move is the engine's. This is a ledger to read, not a control panel.
  */
 
 import { h, classNames } from '../render.js';
-import {
-  releasePlayer,
-  sellPlayer
-} from '../../state/commands.js';
 import {
   selectFollowedTeam,
   selectTeamFinances,
@@ -64,7 +60,6 @@ export function FinancesScreen(state, dispatch, store) {
   const payroll = selectPayrollBreakdown(state, team.id);
   const tBal = selectTransferBalance(state, team.id);
   const seasonIndex = selectSeasonIndex(state);
-  const realStore = store || (dispatch ? { getState: () => state, dispatch } : null);
 
   return h(
     'section',
@@ -132,11 +127,10 @@ export function FinancesScreen(state, dispatch, store) {
                 h('th', { class: 'col-player' }, 'Player'),
                 h('th', { class: 'col-role' }, 'Role'),
                 h('th', { class: 'col-salary' }, 'Salary'),
-                h('th', { class: 'col-expires' }, 'Contract'),
-                h('th', { class: 'col-actions' }, 'Actions')
+                h('th', { class: 'col-expires' }, 'Contract')
               )
             ),
-            h('tbody', null, payroll.map((row) => payrollRow(row, realStore, seasonIndex)))
+            h('tbody', null, payroll.map((row) => payrollRow(row, seasonIndex)))
           )
     )
   );
@@ -152,14 +146,11 @@ function summaryItem(label, value, extraClass) {
   );
 }
 
-/** One payroll row: player info + release/sell buttons. */
-function payrollRow(row, store, seasonIndex) {
+/** One payroll row: read-only player + salary + contract info. */
+function payrollRow(row, seasonIndex) {
   const { player, salary, expires } = row;
   const label = player.handle || player.name || player.id;
   const isExpiring = typeof expires === 'number' && expires <= seasonIndex + 1;
-
-  const onRelease = store ? () => releasePlayer(store, player.id) : null;
-  const onSell = store ? () => sellPlayer(store, player.id) : null;
 
   return h(
     'tr',
@@ -172,32 +163,6 @@ function payrollRow(row, store, seasonIndex) {
       { class: classNames('col-expires', isExpiring && 'finances__expiring-tag') },
       expiresLabel(expires),
       isExpiring ? h('span', { class: 'badge badge--warn finances__expiry-badge' }, 'Exp') : null
-    ),
-    h(
-      'td',
-      { class: 'col-actions finances__row-actions' },
-      h(
-        'button',
-        {
-          type: 'button',
-          class: 'btn btn--sm btn--danger',
-          onClick: onRelease,
-          disabled: !onRelease || undefined,
-          title: 'Release to free agency'
-        },
-        'Release'
-      ),
-      h(
-        'button',
-        {
-          type: 'button',
-          class: 'btn btn--sm btn--secondary',
-          onClick: onSell,
-          disabled: !onSell || undefined,
-          title: 'Sell to the highest AI bidder'
-        },
-        'Sell'
-      )
     )
   );
 }

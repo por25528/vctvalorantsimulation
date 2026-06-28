@@ -22,10 +22,16 @@
  *                                   (champion toast + champions screen on finish).
  *   openEvent(store, slotId, region)navigate the event's Tournament view.
  *   openSeries(store, seriesId)     hydrate the series, point the ticker, go match.
- *   signPlayer/releasePlayer/offerContract/moveRosterPlayer
- *                                   — the user's transfer-market + lineup moves;
- *                                   mutate the world slice directly (roster-valid),
- *                                   log into the transfers slice, autosave.
+ *   followTeam(store, teamId)       point the free camera at any team (or null to
+ *                                   roam) — pure UI focus, NO ownership/management.
+ *
+ * SPECTATOR MODEL: this is a hands-off, god-observer world sim. The user does NOT
+ * manage a team — there are no sell/release/sign/buy/lineup/coach commands and no
+ * privileged "my team". Every club is run autonomously by the engine; the user
+ * only watches, advances time, and points the camera. The god-mode editor
+ * (editPlayer/editTeam/healPlayer) and scouting (scoutPlayer) are the observer's
+ * world-shaping tools, not team management.
+ *
  *   saveCurrent/loadSlot/deleteSlot/duplicateSlot/exportCurrent/importSave
  *                                   — async persistence via a module-level
  *                                   saveManager = createSaveManager(getDefaultAdapter()).
@@ -46,15 +52,9 @@ import {
   runCareerOffseason
 } from '../engine/career/career.js';
 import { buildSlotSchedule } from '../engine/career/matchdays.js';
-import { salaryFor } from '../engine/career/offseason/contracts.js';
-import { transferFee, playerValue } from '../engine/career/offseason/transfers.js';
-import { generateCoach } from '../engine/career/staff.js';
-import { createRng } from '../core/rng.js';
-import { hashSeed } from '../core/hash.js';
 import { computeSeasonAwards } from '../engine/career/awards.js';
 import { eventNews, awardNews, offseasonNews, injuryNews } from '../engine/career/news.js';
 import { isFreshInjury } from '../engine/career/injuries.js';
-import { BALANCE } from '../config/balance.js';
 import { createSaveManager, AUTOSAVE_ID } from '../persistence/saveManager.js';
 import { getDefaultAdapter } from '../persistence/db.js';
 import { newSaveMeta } from '../persistence/migrations.js';
@@ -68,7 +68,6 @@ import {
   setStatus,
   resetEvents,
   setCareer,
-  recordTransfer,
   resetTransfers,
   appendNews,
   loadInbox,
@@ -87,11 +86,8 @@ import {
   addScoutFocus,
   resetScouting
 } from './actions.js';
-import { selectSeason, selectScoutFocusesUsedThisSeason, selectPlayerFocusCount, selectSeasonIndex } from './selectors.js';
+import { selectSeason, selectSeasonIndex } from './selectors.js';
 import { MAX_SCOUT_FOCUSES } from '../engine/career/scouting.js';
-
-/** Transfer-market tuning (roster bounds + user contract length). */
-const MARKET = BALANCE.CAREER.MARKET;
 
 /** The default master season seed (deterministic 2026 cycle). */
 export const DEFAULT_SEED = 2026;
@@ -536,8 +532,10 @@ export function continueSeason(store, opts = {}) {
 
   // 2) Off-season — aging/retirements/newgens/transfers, then start next season.
   if (career.phase === 'offseason') {
-    // Shield the user's own club from AI buy/sell raids — they manage their squad.
-    const next = runCareerOffseason(career, { protectTeamId: followedTeamId });
+    // Pure spectator world: NO team is privileged. Every club — including the one
+    // the camera happens to be watching — is subject to the same autonomous AI
+    // buy/sell market. The observer removes none of the world's agency.
+    const next = runCareerOffseason(career);
     store.dispatch(resetReveal()); // a fresh season opens with no slot revealing
     writeCareer(store, next, { newSeason: true });
     const osNews = offseasonNews(next.offseason, next.world, {
@@ -674,398 +672,6 @@ export function setAutoplayPace(store, speed) {
   void autosaveCurrent(store);
 }
 
-/* ------------------------------------------------------------------ */
-/* transfer-market commands (P6d)                                      */
-/* ------------------------------------------------------------------ */
-/**
- * The user brokers moves on the world DIRECTLY (the season engine stays pure —
- * it just receives whatever world the next Continue hands it, exactly as it
- * already does). Each command updates the affected Player + Team in the world
- * slice, logs the Move into the transfer-window slice, toasts, and autosaves.
- * Roster validity (≥ MIN_ROSTER, ≤ MAX_ROSTER) is enforced so the match engine
- * always fields a legal starting five (its lineup = the first 5 roster ids).
- *
- * Salary/length reuse the engine's salaryFor + BALANCE so user pay is consistent
- * with the AI market. Contract length is fixed (no rng in the UI layer), and the
- * expiry is set past the upcoming off-season so a fresh signing isn't instantly
- * up for renewal (the off-season treats expires ≤ seasonIndex as "up").
- */
-
-/** A frozen Player copy with a replaced contract. */
-function withContract(player, contract) {
-  return Object.freeze({ ...player, contract });
-}
-
-/** A frozen Team copy with a replaced roster (also frozen). */
-function withRoster(team, roster) {
-  return Object.freeze({ ...team, roster: Object.freeze(roster) });
-}
-
-/** The current season ordinal (for contract expiry math). */
-function currentSeasonIndex(store) {
-  const c = store.getState().career;
-  return (c && c.seasonIndex) || 0;
-}
-
-/**
- * Sign a free agent onto a team (defaults to the followed team). The player must
- * be a free agent and the team must have room (< MAX_ROSTER). New signings join
- * the bench (end of the roster); reorder via {@link moveRosterPlayer} to start them.
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} playerId
- * @param {string} [teamId]  defaults to the followed team
- * @returns {boolean} true if the signing went through
- */
-export function signPlayer(store, playerId, teamId) {
-  const state = store.getState();
-  const tid = teamId || state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  const player = state.world.players[playerId];
-
-  if (!team) {
-    store.dispatch(pushToast('error', 'No team selected to sign for.'));
-    return false;
-  }
-  if (!player) {
-    store.dispatch(pushToast('error', 'Player not found.'));
-    return false;
-  }
-  const label = player.handle || player.name || playerId;
-  if (!player.contract || player.contract.status !== 'free_agent') {
-    store.dispatch(pushToast('error', `${label} is not a free agent.`));
-    return false;
-  }
-  const roster = team.roster || [];
-  if (roster.includes(playerId)) return false; // already rostered (defensive no-op)
-  if (roster.length >= MARKET.MAX_ROSTER) {
-    store.dispatch(pushToast('error', `${team.name} are full (${MARKET.MAX_ROSTER} max) — release someone first.`));
-    return false;
-  }
-
-  const salary = salaryFor(player);
-  // Economy gate (P7e): the club must have the cash on hand to carry the wage.
-  const budget = Number(team.budget) || 0;
-  if (salary > budget) {
-    store.dispatch(pushToast('error', `${team.name} can't afford ${label} — $${Math.round(salary / 1000)}k wage vs $${Math.round(budget / 1000)}k budget.`));
-    return false;
-  }
-  const expires = currentSeasonIndex(store) + MARKET.USER_SIGN_LENGTH;
-  store.dispatch(setPlayer(withContract(player, { teamId: tid, salary, expires, status: 'active' })));
-  store.dispatch(setTeam(withRoster(team, [...roster, playerId])));
-  store.dispatch(recordTransfer({ playerId, fromTeamId: null, toTeamId: tid, fee: 0, salary, kind: 'signing', name: label }));
-  store.dispatch(pushToast('success', `Signed ${label} to ${team.name}.`));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/**
- * Release a player to free agency. Refused if it would drop the roster below
- * MIN_ROSTER (the match engine must always have five to field).
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} playerId
- * @returns {boolean} true if the release went through
- */
-export function releasePlayer(store, playerId) {
-  const state = store.getState();
-  const player = state.world.players[playerId];
-  if (!player) {
-    store.dispatch(pushToast('error', 'Player not found.'));
-    return false;
-  }
-  const tid = (player.contract && player.contract.teamId) || state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  const label = player.handle || player.name || playerId;
-  if (!team || !(team.roster || []).includes(playerId)) {
-    store.dispatch(pushToast('error', `${label} is not on a roster you manage.`));
-    return false;
-  }
-  if ((team.roster || []).length <= MARKET.MIN_ROSTER) {
-    store.dispatch(pushToast('error', `Can't release — ${team.name} can't drop below ${MARKET.MIN_ROSTER}.`));
-    return false;
-  }
-
-  store.dispatch(setPlayer(withContract(player, { teamId: null, salary: 0, expires: 0, status: 'free_agent' })));
-  store.dispatch(setTeam(withRoster(team, team.roster.filter((id) => id !== playerId))));
-  store.dispatch(recordTransfer({ playerId, fromTeamId: tid, toTeamId: null, fee: 0, salary: 0, kind: 'release', name: label }));
-  store.dispatch(pushToast('info', `Released ${label} from ${team.name}.`));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/**
- * Offer a rostered player a contract extension — re-prices the salary (salaryFor)
- * and pushes the expiry out USER_SIGN_LENGTH seasons past the upcoming off-season.
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} playerId
- * @param {{ length?: number }} [opts]
- * @returns {boolean} true if the extension went through
- */
-export function offerContract(store, playerId, opts = {}) {
-  const state = store.getState();
-  const player = state.world.players[playerId];
-  if (!player) {
-    store.dispatch(pushToast('error', 'Player not found.'));
-    return false;
-  }
-  const tid = player.contract && player.contract.teamId;
-  const team = tid ? state.world.teams[tid] : null;
-  const label = player.handle || player.name || playerId;
-  if (!team || !(team.roster || []).includes(playerId) || player.contract.status !== 'active') {
-    store.dispatch(pushToast('error', `Can only extend an active player on a roster you manage.`));
-    return false;
-  }
-
-  const length = opts.length > 0 ? opts.length : MARKET.USER_SIGN_LENGTH;
-  const seasonIndex = currentSeasonIndex(store);
-  const prevExpires = Number(player.contract.expires) || 0;
-  const expires = Math.max(prevExpires, seasonIndex) + length;
-  const salary = salaryFor(player);
-  store.dispatch(setPlayer(withContract(player, { teamId: tid, salary, expires, status: 'active' })));
-  store.dispatch(recordTransfer({ playerId, fromTeamId: tid, toTeamId: tid, fee: 0, salary, kind: 'renew', name: label }));
-  store.dispatch(pushToast('success', `Extended ${label} through S${expires + 1}.`));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/**
- * Reorder the followed team's roster (lineup management): the FIRST FIVE roster
- * ids are the starting five the match engine fields, so moving a player up/down
- * sets who starts vs. who benches. `delta < 0` moves up (toward starter), `delta
- * > 0` moves down (toward bench). Clamped at the ends.
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} playerId
- * @param {number} delta  -1 to promote, +1 to demote
- * @returns {boolean} true if the order changed
- */
-export function moveRosterPlayer(store, playerId, delta) {
-  const state = store.getState();
-  const tid = state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  if (!team || !Array.isArray(team.roster)) return false;
-  const roster = team.roster.slice();
-  const i = roster.indexOf(playerId);
-  if (i < 0) return false;
-  const j = i + (delta < 0 ? -1 : 1);
-  if (j < 0 || j >= roster.length) return false;
-  const tmp = roster[i];
-  roster[i] = roster[j];
-  roster[j] = tmp;
-  store.dispatch(setTeam(withRoster(team, roster)));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/* ------------------------------------------------------------------ */
-/* buy/sell + coach (P13)                                              */
-/* ------------------------------------------------------------------ */
-
-/** The highest-value free agent a team can afford the wage of (or best available). */
-function bestRefillFreeAgent(state, teamBudget) {
-  const players = state.world.players || {};
-  let bestAfford = null;
-  let bestAny = null;
-  for (const id of Object.keys(players)) {
-    const p = players[id];
-    if (!p || !p.contract || p.contract.status !== 'free_agent') continue;
-    if (!bestAny || playerValue(p) > playerValue(bestAny)) bestAny = p;
-    if (salaryFor(p) <= teamBudget && (!bestAfford || playerValue(p) > playerValue(bestAfford))) bestAfford = p;
-  }
-  return bestAfford || bestAny;
-}
-
-/**
- * Buy a CONTRACTED player from another club for the followed team, paying a
- * transfer fee from the budget (the coach's negotiation rating trims it). The
- * selling AI club banks the fee and refills its vacated slot from the free-agent
- * pool, so every roster stays valid. The bought player joins the user's bench
- * (≤ MAX_ROSTER). Refused if the club can't afford the fee+wage, is full, or the
- * seller has no replacement on the market.
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} playerId
- * @returns {boolean}
- */
-export function buyPlayer(store, playerId) {
-  const state = store.getState();
-  const tid = state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  const player = state.world.players[playerId];
-  if (!team) { store.dispatch(pushToast('error', 'No team selected to buy for.')); return false; }
-  if (!player) { store.dispatch(pushToast('error', 'Player not found.')); return false; }
-  const label = player.handle || player.name || playerId;
-  const c = player.contract;
-  if (!c || c.status !== 'active' || !c.teamId || c.teamId === tid) {
-    store.dispatch(pushToast('error', `${label} isn't a contracted player at another club.`));
-    return false;
-  }
-  const seller = state.world.teams[c.teamId];
-  if (!seller) { store.dispatch(pushToast('error', 'Selling club not found.')); return false; }
-  const roster = team.roster || [];
-  if (roster.length >= MARKET.MAX_ROSTER) {
-    store.dispatch(pushToast('error', `${team.name} are full (${MARKET.MAX_ROSTER} max) — release someone first.`));
-    return false;
-  }
-  const season = currentSeasonIndex(store);
-  const nego = team.coach ? team.coach.negotiation : 0;
-  const fee = transferFee(player, seller, { season, coachNego: nego });
-  const wage = salaryFor(player);
-  const budget = Number(team.budget) || 0;
-  if (fee > budget) {
-    store.dispatch(pushToast('error', `Can't afford ${label} — $${Math.round(fee / 1000)}k fee vs $${Math.round(budget / 1000)}k budget.`));
-    return false;
-  }
-  if (budget - fee < wage) {
-    store.dispatch(pushToast('error', `Can't carry ${label}'s $${Math.round(wage / 1000)}k wage after a $${Math.round(fee / 1000)}k fee.`));
-    return false;
-  }
-  // Never spend below the budget floor (the seller is credited the full fee, so a
-  // floor-breaching buy would mint money — refuse, consistent with the AI market).
-  const floor = BALANCE.CAREER.ECONOMY.BUDGET_FLOOR;
-  if (budget - fee < floor) {
-    store.dispatch(pushToast('error', `A $${Math.round(fee / 1000)}k fee would drop ${team.name} below its $${Math.round(floor / 1000)}k reserve floor.`));
-    return false;
-  }
-
-  // Seller loses the player and must refill from the pool to stay ≥ MIN_ROSTER.
-  const sellerBudgetAfter = (Number(seller.budget) || 0) + fee;
-  const sellerRoster = (seller.roster || []).filter((id) => id !== playerId);
-  if (sellerRoster.length < MARKET.MIN_ROSTER) {
-    const refill = bestRefillFreeAgent(state, sellerBudgetAfter);
-    if (!refill) {
-      store.dispatch(pushToast('error', `${seller.name} have no replacement on the market — the deal collapses.`));
-      return false;
-    }
-    sellerRoster.push(refill.id);
-    store.dispatch(setPlayer(withContract(refill, { teamId: seller.id, salary: salaryFor(refill), expires: season + 1, status: 'active' })));
-  }
-  store.dispatch(setTeam(Object.freeze({ ...seller, roster: Object.freeze(sellerRoster), budget: Math.round(sellerBudgetAfter) })));
-
-  // The bought player joins the user's bench; pay the fee.
-  store.dispatch(setPlayer(withContract(player, { teamId: tid, salary: wage, expires: season + MARKET.USER_SIGN_LENGTH, status: 'active' })));
-  store.dispatch(setTeam(Object.freeze({ ...team, roster: Object.freeze([...roster, playerId]), budget: Math.round(budget - fee) })));
-  store.dispatch(recordTransfer({ playerId, fromTeamId: seller.id, toTeamId: tid, fee, salary: wage, kind: 'transfer', name: label }));
-  store.dispatch(pushToast('success', `Bought ${label} from ${seller.name} for $${Math.round(fee / 1000)}k.`));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/**
- * Sell a rostered player to an AI club. The engine picks the richest willing
- * buyer deterministically (most budget → ties broken by teamId). The user's
- * club receives the transfer fee; the buyer pays it and carries the wage.
- * Refused if the club would drop below MIN_ROSTER or no team can afford it.
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} playerId
- * @returns {boolean}
- */
-export function sellPlayer(store, playerId) {
-  const state = store.getState();
-  const tid = state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  const player = state.world.players[playerId];
-  if (!team) { store.dispatch(pushToast('error', 'No team selected.')); return false; }
-  if (!player) { store.dispatch(pushToast('error', 'Player not found.')); return false; }
-  const label = player.handle || player.name || playerId;
-  const c = player.contract;
-  if (!c || c.status !== 'active' || c.teamId !== tid) {
-    store.dispatch(pushToast('error', `${label} is not on your active roster.`));
-    return false;
-  }
-  if ((team.roster || []).length <= MARKET.MIN_ROSTER) {
-    store.dispatch(pushToast('error', `Can't sell — ${team.name} can't drop below ${MARKET.MIN_ROSTER}.`));
-    return false;
-  }
-  const season = currentSeasonIndex(store);
-  const nego = team.coach ? team.coach.negotiation : 0;
-  const fee = transferFee(player, team, { season, coachNego: nego });
-  const wage = salaryFor(player);
-  const floor = BALANCE.CAREER.ECONOMY.BUDGET_FLOOR;
-
-  // Find the richest team that can afford the fee+wage and still has roster room.
-  // Sort by teamId for a fully-deterministic tiebreak before taking the max-budget.
-  const allTeams = state.world.teams;
-  let buyer = null;
-  let bestBudget = -1;
-  for (const id of Object.keys(allTeams).sort()) {
-    if (id === tid) continue;
-    const t = allTeams[id];
-    const tBudget = Number(t.budget) || 0;
-    if ((t.roster || []).length >= MARKET.MAX_ROSTER) continue;
-    if (tBudget - fee < floor) continue;
-    if (tBudget - fee < wage) continue;
-    if (tBudget > bestBudget) { bestBudget = tBudget; buyer = t; }
-  }
-  if (!buyer) {
-    store.dispatch(pushToast('error', `No team can afford ${label} right now.`));
-    return false;
-  }
-
-  // User's club: remove player, bank the fee.
-  const sellerRoster = (team.roster || []).filter((id) => id !== playerId);
-  store.dispatch(setTeam(Object.freeze({ ...team, roster: Object.freeze(sellerRoster), budget: Math.round((Number(team.budget) || 0) + fee) })));
-
-  // Buying AI club: add player on a fresh contract, pay the fee.
-  const buyerRoster = [...(buyer.roster || []), playerId];
-  store.dispatch(setPlayer(withContract(player, { teamId: buyer.id, salary: wage, expires: season + MARKET.USER_SIGN_LENGTH, status: 'active' })));
-  store.dispatch(setTeam(Object.freeze({ ...buyer, roster: Object.freeze(buyerRoster), budget: Math.round((Number(buyer.budget) || 0) - fee) })));
-
-  store.dispatch(recordTransfer({ playerId, fromTeamId: tid, toTeamId: buyer.id, fee, salary: wage, kind: 'transfer', name: label }));
-  store.dispatch(pushToast('success', `Sold ${label} to ${buyer.name} for $${Math.round(fee / 1000)}k.`));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/**
- * Hire a head coach / GM for a team (defaults to the followed team). Generates a
- * candidate (quality biased by club reputation), gated by the budget covering the
- * coach's wage. A better `negotiation` rating means cheaper future transfers.
- *
- * @param {import('../core/store.js').Store} store
- * @param {string} [teamId]
- * @returns {boolean}
- */
-export function hireCoach(store, teamId) {
-  const state = store.getState();
-  const tid = teamId || state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  if (!team) { store.dispatch(pushToast('error', 'No team selected.')); return false; }
-  const seed = (state.career && state.career.seed != null) ? state.career.seed : DEFAULT_SEED;
-  // Re-roll varies with how many coaches this club has already cycled through.
-  const salt = (team.coach ? 1 : 0) + currentSeasonIndex(store);
-  const rng = createRng(hashSeed(seed, 'userhire', tid, salt));
-  const coach = generateCoach(rng, { reputation: team.reputation });
-  if (coach.salary > (Number(team.budget) || 0)) {
-    store.dispatch(pushToast('error', `${team.name} can't afford ${coach.name}'s $${Math.round(coach.salary / 1000)}k salary.`));
-    return false;
-  }
-  store.dispatch(setTeam(createTeam({ ...team, coach, id: team.id })));
-  store.dispatch(pushToast('success', `Hired ${coach.name} — coaching ${coach.rating}, negotiation ${coach.negotiation}.`));
-  void autosaveCurrent(store);
-  return true;
-}
-
-/**
- * Dismiss a team's coach (defaults to the followed team).
- * @param {import('../core/store.js').Store} store
- * @param {string} [teamId]
- * @returns {boolean}
- */
-export function fireCoach(store, teamId) {
-  const state = store.getState();
-  const tid = teamId || state.ui.followedTeamId;
-  const team = tid ? state.world.teams[tid] : null;
-  if (!team || !team.coach) { store.dispatch(pushToast('error', 'No coach to dismiss.')); return false; }
-  const name = team.coach.name;
-  store.dispatch(setTeam(createTeam({ ...team, coach: null, id: team.id })));
-  store.dispatch(pushToast('info', `Dismissed ${name}.`));
-  void autosaveCurrent(store);
-  return true;
-}
 
 /* ------------------------------------------------------------------ */
 /* scouting (P-scouting-c2)                                            */

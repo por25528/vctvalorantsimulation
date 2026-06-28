@@ -32,8 +32,8 @@ export default async function run() {
 
   // The top-bar follow dropdown lists teams (region-grouped) + a spectate option.
   const shell = toHtml(AppView(st(), store.dispatch, store));
-  assert(shell.includes('topbar__follow-select'), 'top bar has the follow dropdown');
-  assert(shell.includes('Spectating (no team)'), 'follow dropdown offers a spectate option');
+  assert(shell.includes('topbar__follow-select'), 'top bar has the camera dropdown');
+  assert(shell.includes('Free camera — all teams'), 'camera dropdown offers a free-camera (no team) option');
   assert((shell.match(/<optgroup/g) || []).length === 4, 'follow dropdown groups teams by the 4 regions');
 
   // Play the Kickoff (4 regions) + Masters One (international Swiss + double-elim).

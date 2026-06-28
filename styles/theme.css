@@ -1,15 +1,20 @@
 /* ============================================================================
- * styles/theme.css — DESIGN TOKENS (Phase 3 UI shell)
+ * styles/theme.css — DESIGN TOKENS
  * ----------------------------------------------------------------------------
- * Per CONTRACTS-UI §7. CSS custom-property tokens for a dark esports aesthetic
- * with a Valorant-red accent. Imported (linked) BEFORE main.css so main.css
- * consumes these vars. No preprocessor — plain CSS. Engine/domain layers never
- * touch CSS; only src/ui/** + src/main.js emit the class names main.css styles.
+ * Identity: "MISSION CONTROL" — a sleek esports-broadcast / control-surface
+ * dashboard for a hands-off, god-observer VCT world sim. Deep slate-navy base,
+ * an electric SIGNAL-CYAN accent, a warm amber "live" secondary, sharp HUD
+ * panels and confident, tracked typography.
+ *
+ * Everything downstream is token-driven: `styles/main.css` + `styles/components/*`
+ * and every screen consume these custom properties — no hardcoded hex in screens.
+ * Linked BEFORE main.css so main.css resolves these vars. Plain CSS, no build.
  *
  * Token groups:
- *   surfaces  — --bg, --panel, --panel-2, --panel-3, --border, --border-soft
+ *   surfaces  — --bg, --panel, --panel-2, --panel-3, --border, --border-soft, --inset
  *   text      — --text, --muted, --faint
- *   accent    — --accent (Valorant red ~#ff4655) + hover/soft/contrast
+ *   accent    — --accent (signal cyan) + hover/active/soft/line/contrast
+ *   live      — --live (broadcast "on-air" amber/red) for status indicators
  *   teams     — --teamA / --teamB (distinct) + soft fills
  *   sides     — --atk (attack), --def (defense) + soft fills
  *   econ      — glyph colors per buy type: pistol/eco/force/full
@@ -17,44 +22,49 @@
  *   qual/cp   — qualification + championship-point badge colors
  *   space     — --sp-1 .. --sp-6 spacing scale
  *   radius    — --r-1 .. --r-3 + --r-pill
- *   type      — --fs-* type scale + font families + weights
- *   misc      — shadows, z-index layers, transitions
+ *   type      — --fs-* type scale + font families + weights + HUD tracking
+ *   fx        — shadows, glow, hud gridlines, z-index layers, transitions
  * ========================================================================== */
 
 :root {
-  /* ---- surfaces (dark, layered) ---------------------------------------- */
-  --bg:          #0b0c10;   /* app background (deepest) */
-  --panel:       #14161d;   /* primary panel surface */
-  --panel-2:     #1b1e27;   /* raised panel / table header / cards */
-  --panel-3:     #232733;   /* hover / selected row / inset */
-  --border:      #2a2e3a;   /* default 1px divider */
-  --border-soft: #20232d;   /* subtle internal divider */
-  --inset:       #0e1015;   /* sunken wells (ticker track, code) */
+  /* ---- surfaces (deep slate-navy, layered) ----------------------------- */
+  --bg:          #05070d;   /* app background (deepest) */
+  --panel:       #0b0f1a;   /* primary panel surface / chrome */
+  --panel-2:     #121826;   /* raised panel / table header / cards */
+  --panel-3:     #1b2333;   /* hover / selected row / inset */
+  --border:      #273248;   /* default 1px divider */
+  --border-soft: #18202f;   /* subtle internal divider */
+  --inset:       #03050b;   /* sunken wells (ticker track, code) */
 
   /* ---- text ------------------------------------------------------------ */
-  --text:   #e8eaf0;        /* primary copy */
-  --muted:  #9aa0b0;        /* secondary copy / labels */
-  --faint:  #626878;        /* tertiary / disabled / captions */
+  --text:   #eef2fb;        /* primary copy */
+  --muted:  #98a4be;        /* secondary copy / labels */
+  --faint:  #5c6883;        /* tertiary / disabled / captions */
 
-  /* ---- accent (Valorant red) ------------------------------------------- */
-  --accent:          #ff4655;
-  --accent-hover:    #ff5e6b;
-  --accent-active:   #e23644;
-  --accent-soft:     rgba(255, 70, 85, 0.14);   /* tint fills / focus ring */
-  --accent-line:     rgba(255, 70, 85, 0.40);
-  --accent-contrast: #ffffff;                    /* text on accent */
+  /* ---- accent (signal cyan) -------------------------------------------- */
+  --accent:          #25e0d4;
+  --accent-hover:    #5cefe6;
+  --accent-active:   #15bdb2;
+  --accent-soft:     rgba(37, 224, 212, 0.12);   /* tint fills / focus ring */
+  --accent-line:     rgba(37, 224, 212, 0.42);
+  --accent-contrast: #04140f;                     /* dark text on bright cyan */
+  --accent-glow:     rgba(37, 224, 212, 0.30);
+
+  /* ---- live / on-air (broadcast status) -------------------------------- */
+  --live:      #ff4d5e;      /* "LIVE" dot / on-air */
+  --live-soft: rgba(255, 77, 94, 0.16);
 
   /* ---- team colors (distinct A vs B) ----------------------------------- */
-  --teamA:      #3da9fc;     /* cool blue */
-  --teamA-soft: rgba(61, 169, 252, 0.16);
+  --teamA:      #9a8cff;     /* electric violet */
+  --teamA-soft: rgba(154, 140, 255, 0.16);
   --teamB:      #ffb454;     /* warm amber */
   --teamB-soft: rgba(255, 180, 84, 0.16);
 
   /* ---- side colors (atk / def) ----------------------------------------- */
-  --atk:      #ff6f59;       /* attack = warm red-orange */
-  --atk-soft: rgba(255, 111, 89, 0.18);
-  --def:      #45c4b0;       /* defense = teal */
-  --def-soft: rgba(69, 196, 176, 0.18);
+  --atk:      #ff6a5a;       /* attack = warm red-orange */
+  --atk-soft: rgba(255, 106, 90, 0.18);
+  --def:      #36d39a;       /* defense = green-teal */
+  --def-soft: rgba(54, 211, 154, 0.18);
 
   /* ---- economy glyph colors -------------------------------------------- */
   --econ-pistol: #c9d1e0;    /* pistol round (neutral light) */
@@ -63,21 +73,23 @@
   --econ-full:   #4ade80;    /* full buy (green) */
 
   /* ---- result ---------------------------------------------------------- */
-  --win:       #4ade80;
-  --win-soft:  rgba(74, 222, 128, 0.16);
-  --loss:      #f87171;
-  --loss-soft: rgba(248, 113, 113, 0.16);
-  --draw:      #9aa0b0;
+  --win:       #37d98a;
+  --win-soft:  rgba(55, 217, 138, 0.16);
+  --loss:      #ff5d6c;
+  --loss-soft: rgba(255, 93, 108, 0.16);
+  --draw:      #98a4be;
 
   /* ---- qualification / championship-point badges ----------------------- */
-  --qual:        #4ade80;    /* qualified (advances) */
-  --qual-soft:   rgba(74, 222, 128, 0.16);
-  --elim:        #f87171;    /* eliminated */
-  --elim-soft:   rgba(248, 113, 113, 0.14);
-  --cp:          #ffd166;    /* championship points */
-  --cp-soft:     rgba(255, 209, 102, 0.16);
-  --mvp:         #ffd166;    /* MVP highlight (gold) */
-  --mvp-soft:    rgba(255, 209, 102, 0.12);
+  --qual:        #37d98a;    /* qualified (advances) */
+  --qual-soft:   rgba(55, 217, 138, 0.16);
+  --elim:        #ff5d6c;    /* eliminated */
+  --elim-soft:   rgba(255, 93, 108, 0.14);
+  --cp:          #ffc24d;    /* championship points */
+  --cp-soft:     rgba(255, 194, 77, 0.16);
+  --mvp:         #ffc24d;    /* MVP highlight (gold) */
+  --mvp-soft:    rgba(255, 194, 77, 0.12);
+  --warn:        #ffb454;
+  --warn-soft:   rgba(255, 180, 84, 0.16);
 
   /* ---- spacing scale --------------------------------------------------- */
   --sp-1: 4px;
@@ -87,44 +99,55 @@
   --sp-5: 24px;
   --sp-6: 32px;
 
-  /* ---- radius ---------------------------------------------------------- */
-  --r-1: 4px;
-  --r-2: 8px;
-  --r-3: 12px;
+  /* ---- radius (sharp, HUD-like) ---------------------------------------- */
+  --r-1: 3px;
+  --r-2: 6px;
+  --r-3: 10px;
   --r-pill: 999px;
 
   /* ---- type scale ------------------------------------------------------ */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  --font-display: var(--font-sans);
 
   --fs-xs:  11px;   /* captions, ticker score, table micro */
   --fs-sm:  13px;   /* table body, secondary */
   --fs-md:  15px;   /* base copy */
   --fs-lg:  18px;   /* card titles */
-  --fs-xl:  24px;   /* screen headings */
-  --fs-2xl: 34px;   /* hero / big score */
+  --fs-xl:  25px;   /* screen headings */
+  --fs-2xl: 36px;   /* hero / big score */
+  --fs-3xl: 48px;   /* mega hero */
 
   --fw-regular: 400;
   --fw-medium:  500;
   --fw-semibold:600;
   --fw-bold:    700;
+  --fw-black:   800;
 
-  --lh-tight: 1.2;
+  --lh-tight: 1.18;
   --lh-base:  1.5;
 
-  /* ---- elevation / shadow ---------------------------------------------- */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 4px 14px rgba(0, 0, 0, 0.45);
-  --shadow-pop: 0 8px 28px rgba(0, 0, 0, 0.55);
+  /* HUD label tracking — the uppercase, spaced "control panel" voice. */
+  --tracking-hud:   0.14em;
+  --tracking-tight: 0.01em;
+
+  /* ---- elevation / shadow / glow --------------------------------------- */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 6px 20px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 14px 40px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 0 1px var(--accent-line), 0 0 22px var(--accent-glow);
   /* keyboard focus ring — a crisp two-layer ring (dark separator + solid accent)
    * so focus is clearly visible on every surface. Used app-wide via the many
-   * `box-shadow: var(--ring)` :focus-visible rules; the previous single 0.14-alpha
-   * tint was effectively invisible against the dark panels. */
+   * `box-shadow: var(--ring)` :focus-visible rules. */
   --ring: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 
+  /* HUD texture — faint gridlines / hairlines for the control-surface feel. */
+  --hud-grid: rgba(148, 164, 190, 0.045);
+  --hud-hair: rgba(37, 224, 212, 0.14);
+
   /* ---- layout sizing --------------------------------------------------- */
-  --sidebar-w: 220px;
-  --topbar-h:  56px;
+  --sidebar-w: 238px;
+  --topbar-h:  60px;
 
   /* ---- motion ---------------------------------------------------------- */
   --t-fast: 110ms ease;
@@ -137,7 +160,7 @@
   --z-toast:   1100;
 
   /* ------------------------------------------------------------------ */
-  /* Back-compat aliases for any Phase-1 placeholder rules still around. */
+  /* Back-compat aliases for any placeholder rules still around.        */
   --color-bg: var(--bg);
   --color-fg: var(--text);
   --color-accent: var(--accent);

@@ -44,6 +44,13 @@ export function TopBar(props) {
   return h(
     'header',
     { class: 'topbar' },
+    // Broadcast "on-air" indicator — the world is always simulating.
+    h(
+      'div',
+      { class: 'topbar__live', title: 'The world is always live — advance time to watch it unfold' },
+      h('span', { class: 'topbar__live-dot', 'aria-hidden': 'true' }),
+      'Live'
+    ),
     teamGroups && teamGroups.length ? followSelect(teamGroups, followedTeamId, onFollow) : null,
     h(
       'div',
@@ -164,17 +171,18 @@ function followSelect(groups, followedTeamId, onFollow) {
   return h(
     'label',
     { class: 'topbar__follow' },
-    h('span', { class: 'topbar__follow-star', 'aria-hidden': 'true' }, followedTeamId ? '★' : '☆'),
+    h('span', { class: 'topbar__follow-star', 'aria-hidden': 'true' }, Icon('eye', { size: 15 })),
+    h('span', { class: 'topbar__follow-kicker' }, 'Camera'),
     h(
       'select',
       {
         class: 'topbar__follow-select',
-        'aria-label': 'Follow a team',
+        'aria-label': 'Point the camera at a team',
         value: followedTeamId || '',
         disabled: onFollow ? undefined : true,
         onChange: onFollow ? (e) => onFollow(e.target.value || null) : undefined
       },
-      h('option', { value: '', selected: !followedTeamId ? true : undefined }, 'Spectating (no team)'),
+      h('option', { value: '', selected: !followedTeamId ? true : undefined }, 'Free camera — all teams'),
       groups.map((g) =>
         h(
           'optgroup',
