@@ -2192,6 +2192,190 @@ button {
 .team__title-glyph { line-height: 1; }
 .team__title-name { color: var(--text); }
 
+/* ---- Team dynasty (prestige header + per-season timeline) ---- */
+.team__dynasty-weight {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-hud);
+  text-transform: uppercase;
+  color: var(--cp);
+}
+.team__dynasty-honours {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+.team__dynasty-prestige {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-2);
+}
+.team__dynasty-prestige-kicker {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-hud);
+  color: var(--muted);
+}
+.team__dynasty-prestige-value { font-family: var(--font-mono); font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--accent); line-height: 1.1; }
+.team__dynasty-accolades { list-style: none; display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.team__dynasty-accolade {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--cp-soft);
+  border: 1px solid rgba(255, 194, 77, 0.30);
+  border-radius: var(--r-pill);
+  color: var(--cp);
+}
+.team__timeline { margin-top: var(--sp-4); }
+.team__timeline-title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-hud);
+  color: var(--muted);
+  margin-bottom: var(--sp-3);
+}
+.team__timeline-list { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); }
+.team__timeline-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--r-1);
+}
+.team__timeline-row--champ { background: var(--cp-soft); }
+.team__timeline-season { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--faint); min-width: 3em; }
+.team__timeline-bar {
+  flex: 1 1 auto;
+  min-width: 60px;
+  height: 8px;
+  background: var(--inset);
+  border-radius: var(--r-pill);
+  overflow: hidden;
+}
+.team__timeline-fill { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); }
+.team__timeline-row--champ .team__timeline-fill { background: var(--cp); }
+.team__timeline-glyphs { display: inline-flex; gap: 2px; min-width: 4em; }
+.team__timeline-glyph { line-height: 1; font-size: var(--fs-sm); }
+.team__timeline-count { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); min-width: 4em; text-align: right; }
+
+/* ---- Hall of Fame / all-time records ---- */
+.hof__head { display: flex; flex-direction: column; gap: var(--sp-1); }
+.hof__sub { font-size: var(--fs-sm); }
+.hof__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-4);
+}
+.hof__panel--wide { grid-column: 1 / -1; }
+.hof__panel-icon { display: inline-flex; color: var(--accent); margin-right: var(--sp-2); }
+.hof__panel .panel__head { display: flex; align-items: center; }
+.hof__empty { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .hof__grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.hof__team { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.hof__team-name { font-weight: var(--fw-medium); }
+
+/* records cards */
+.hof__records {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: var(--sp-3);
+}
+.hof__record {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-2);
+}
+.hof__record--clickable { cursor: pointer; transition: background var(--t-fast); }
+.hof__record--clickable:hover { background: var(--panel-3); }
+.hof__record-label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: var(--tracking-hud); color: var(--muted); }
+.hof__record-value { font-family: var(--font-mono); font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--accent); line-height: 1.1; }
+.hof__record-holder { font-weight: var(--fw-medium); color: var(--text); }
+.hof__record-detail { font-size: var(--fs-xs); }
+
+/* dynasty / era lists */
+.hof__list { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.hof__list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+}
+.hof__list-item--clickable { cursor: pointer; transition: background var(--t-fast); }
+.hof__list-item--clickable:hover { background: var(--panel-2); }
+.hof__streak, .hof__share {
+  font-family: var(--font-mono);
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-bold);
+  color: var(--cp);
+  min-width: 3em;
+}
+.hof__share { color: var(--accent); }
+.hof__list-main { display: flex; flex-direction: column; gap: 1px; }
+.hof__list-name { font-weight: var(--fw-medium); }
+.hof__list-detail { font-size: var(--fs-xs); }
+
+/* rivalries */
+.hof__rivalries {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--sp-3);
+}
+.hof__rivalry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+}
+.hof__rivalry-teams { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); }
+.hof__rivalry-team { font-weight: var(--fw-semibold); color: var(--muted); }
+.hof__rivalry-team--lead { color: var(--text); }
+.hof__rivalry-score { font-family: var(--font-mono); font-weight: var(--fw-bold); color: var(--accent); }
+.hof__rivalry-bar { display: flex; height: 6px; border-radius: var(--r-pill); overflow: hidden; background: var(--inset); }
+.hof__rivalry-bar-a { background: var(--teamA); }
+.hof__rivalry-bar-b { background: var(--teamB); }
+.hof__rivalry-meta { font-size: var(--fs-xs); }
+
+/* regions */
+.hof__regions { list-style: none; display: flex; flex-direction: column; gap: var(--sp-2); }
+.hof__region {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+}
+.hof__region-name { font-weight: var(--fw-medium); min-width: 6em; }
+.hof__region-stats { display: flex; gap: var(--sp-3); margin-left: auto; }
+.hof__region-stat { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--muted); }
+.hof__region-stat--champ { color: var(--cp); }
+.hof__region-top { font-size: var(--fs-xs); min-width: 9em; text-align: right; }
+
 /* ---- HLTV-style rating value coloring (Leaders / BoxScore / Player) ---- */
 .rating { font-family: var(--font-mono); font-weight: var(--fw-semibold); }
 .rating--elite { color: var(--cp); }

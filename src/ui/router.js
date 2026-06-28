@@ -49,6 +49,7 @@ import { FinancesScreen } from './screens/Finances.js';
 import { Tier2Screen } from './screens/Tier2.js';
 import { PlayerCareer } from './screens/PlayerCareer.js';
 import { AllTimePlayers } from './screens/AllTimePlayers.js';
+import { HallOfFameScreen } from './screens/HallOfFame.js';
 
 /**
  * Screen id -> screen render fn (CONTRACTS-UI §5).
@@ -85,7 +86,9 @@ export const ROUTES = Object.freeze({
   tier2: Tier2Screen,
   // Wave 2 (E) — persistent player career memory.
   career: PlayerCareer,
-  legends: AllTimePlayers
+  legends: AllTimePlayers,
+  // Wave 2 (F) — team dynasties / all-time records Hall of Fame.
+  hof: HallOfFameScreen
 });
 
 /** The fallback screen id for unknown routes. */

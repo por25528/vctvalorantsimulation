@@ -297,4 +297,40 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   is a grouped broadcast rail (NAV_ITEMS now carry a `section` field: watch/competition/world/tools)
   with a glowing active marker; panel/card/table titles use the mono HUD voice; the TopBar carries a
   "LIVE" on-air chip. Keyboard focus still uses `box-shadow: var(--ring)` on `:focus-visible`.
-- New icons go in `components/Icon.js` (e.g. `cross` = injury marker). Icons, never emoji.
+- New icons go in `components/Icon.js` (e.g. `cross` = injury marker, `hall` = Hall of Fame). Icons, never emoji.
+
+## Epochs — dynasties, rivalries & records (`ui/dynastyDerive.js`)
+
+- **PURE DERIVE LAYER over the frozen `state.career.history[]` ledger + living team reputation —
+  never the match/season engine.** `src/ui/dynastyDerive.js` aggregates history into dynasty/record
+  TEXTURE only; match results stay byte-identical because nothing here feeds back into the sim. No
+  `document`/`window`, no `Math.random`, no `Date`. It reads game truth ONLY through selectors (same
+  contract as `ui/homeDashboard.js`), so it lives in `ui/` — do NOT import it from `state/selectors.js`
+  (that would be a state→ui cycle; selectors import engine glue, the UI imports selectors).
+- **What it derives** (all guarded for empty/early-career worlds — fresh saves return structured
+  empties, never NaN): per-team title TIMELINE + by-type tally + weighted prestige; world-title
+  DYNASTIES (consecutive-champion runs, 2 = back-to-back, 3+ = N-peat, from `history[].champion`);
+  ERAS (rolling-`ERA_WINDOW`=3 windows where one club captured ≥`ERA_SHARE_MIN`=34% of all glory,
+  overlapping windows merged into one span); RIVALRIES (cross-season head-to-head from who finished
+  above whom in the top-`RIVALRY_TOPK`=8 of each season's `finalStandings`, recurring pairs only,
+  ≥2 meetings); all-time RECORDS; and regional prestige. `finalStandings` is the FULL season CP order
+  (champion first) — not just the Champions event.
+- **Title worth is borrowed from the engine's reputation tiers** (`BALANCE.CAREER.REPUTATION.TITLE_*`)
+  so the cabinet, the dynasty index, and the world's living reputation all agree on what a title is
+  worth — single source, no parallel weights. Per-season "glory score" (the prestige arc + dominance
+  share) mirrors the engine's reputation-earned shape (weighted titles + `PLACEMENT_K·DECAY^rank` deep-
+  finish credit).
+- **Two memoized public fns** (reference-identity memo on `[career.history, season.state, world.teams
+  (, teamId)]` — all frozen + replaced wholesale, so `===` is a sound cache key): `deriveTeamDynasty
+  (state, teamId)` feeds the Team screen's dynasty section; `deriveHallOfFame(state)` feeds the Hall of
+  Fame screen.
+- **Team screen dynasty section** (`screens/Team.js` `dynastySection`): replaced the flat trophy list
+  with a prestige header (live reputation + plain-language accolade chips) + the by-type trophy chips
+  + a per-season title/prestige TIMELINE (glory as a bar, gold on world-title years). It KEEPS the
+  `team__cabinet` class and the literal "Trophy Cabinet" panel title — `tests/ui/screen-observer.test`
+  pins both, so don't drop them when restyling. The colourful trophy emoji here remain the one
+  documented emoji exception.
+- **Hall of Fame screen** (`screens/HallOfFame.js`, route id `'hof'`, nav "Hall of Fame" in the
+  competition section, `hall` icon): most-decorated table + all-time record cards + dynasties + eras +
+  rivalries + regional prestige; rows click through to team pages. Uses the Icon set (not emoji) since
+  it is a NEW screen, not the cabinet exception. Renders a clean empty state before any season completes.
