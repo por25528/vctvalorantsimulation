@@ -91,6 +91,21 @@
   --warn:        #ffb454;
   --warn-soft:   rgba(255, 180, 84, 0.16);
 
+  /* ---- competitive rank tiers (Iron → Radiant) ------------------------- */
+  /* Each tier badge picks its colour from these tokens via .rank-badge--<key>.
+   * Hues follow the familiar Valorant ladder so a tier reads at a glance. */
+  --rank-iron:      #8d97a8;
+  --rank-bronze:    #b07a4c;
+  --rank-silver:    #cbd3df;
+  --rank-gold:      #f2c14e;
+  --rank-platinum:  #4fc4d6;
+  --rank-diamond:   #b486ec;
+  --rank-ascendant: #3fd18b;
+  --rank-immortal:  #ff5d6c;
+  --rank-radiant:   #fff6c2;
+  --rank-unranked:  var(--faint);
+  --rank-soft:      rgba(148, 164, 190, 0.12);  /* shared neutral chip fill */
+
   /* ---- spacing scale --------------------------------------------------- */
   --sp-1: 4px;
   --sp-2: 8px;

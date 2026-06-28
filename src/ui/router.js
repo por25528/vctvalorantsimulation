@@ -35,6 +35,8 @@ import { StatsLeadersScreen } from './screens/StatsLeaders.js';
 import { LeagueStatsScreen } from './screens/LeagueStats.js';
 import { CPStandingsScreen } from './screens/CPStandings.js';
 import { RankingsScreen } from './screens/Rankings.js';
+import { GlobalRankingsScreen } from './screens/GlobalRankings.js';
+import { LadderScreen } from './screens/Ladder.js';
 import { ChampionsScreen } from './screens/Champions.js';
 import { SaveLoadScreen } from './screens/SaveLoad.js';
 import { Squad } from './screens/Squad.js';
@@ -69,6 +71,8 @@ export const ROUTES = Object.freeze({
   stats: LeagueStatsScreen,
   cp: CPStandingsScreen,
   rankings: RankingsScreen,
+  globalrankings: GlobalRankingsScreen,
+  ladder: LadderScreen,
   champions: ChampionsScreen,
   saves: SaveLoadScreen,
   squad: Squad,

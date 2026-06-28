@@ -2971,3 +2971,121 @@ button {
 .stats__tier-stat { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; }
 .stats__tier-stat-label { font-size: var(--fs-sm); color: var(--muted); }
 .stats__tier-stat-value { font-size: var(--fs-md); font-weight: var(--fw-medium); font-family: var(--font-mono); }
+
+/* =====================================================================
+ * Competitive core — rank-tier badge, Global Rankings, Ranked Ladder
+ * (rank-ui r10). Token-driven; tier colours come from --rank-* in theme.
+ * ===================================================================== */
+
+/* ---- rank-tier badge (Iron → Radiant) ---- */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 1px var(--sp-2);
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background: var(--rank-soft);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1.4;
+  white-space: nowrap;
+  /* default — overridden per tier below */
+  color: var(--rank-unranked);
+}
+.rank-badge__gem { display: inline-flex; align-items: center; color: inherit; }
+.rank-badge__label { color: inherit; }
+.rank-badge__rr {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: var(--fw-medium);
+}
+
+.rank-badge--iron      { color: var(--rank-iron);      border-color: color-mix(in srgb, var(--rank-iron) 40%, transparent); }
+.rank-badge--bronze    { color: var(--rank-bronze);    border-color: color-mix(in srgb, var(--rank-bronze) 40%, transparent); }
+.rank-badge--silver    { color: var(--rank-silver);    border-color: color-mix(in srgb, var(--rank-silver) 40%, transparent); }
+.rank-badge--gold      { color: var(--rank-gold);      border-color: color-mix(in srgb, var(--rank-gold) 40%, transparent); }
+.rank-badge--platinum  { color: var(--rank-platinum);  border-color: color-mix(in srgb, var(--rank-platinum) 40%, transparent); }
+.rank-badge--diamond   { color: var(--rank-diamond);   border-color: color-mix(in srgb, var(--rank-diamond) 40%, transparent); }
+.rank-badge--ascendant { color: var(--rank-ascendant); border-color: color-mix(in srgb, var(--rank-ascendant) 40%, transparent); }
+.rank-badge--immortal  { color: var(--rank-immortal);  border-color: color-mix(in srgb, var(--rank-immortal) 40%, transparent); }
+.rank-badge--radiant {
+  color: var(--accent-contrast);
+  background: var(--rank-radiant);
+  border-color: var(--rank-radiant);
+}
+.rank-badge--radiant .rank-badge__rr { color: var(--accent-contrast); opacity: 0.75; }
+
+/* ---- Global Rankings: name cell, climb/fall delta ---- */
+.rankings__name { display: inline-flex; align-items: center; gap: var(--sp-2); }
+.rankings__name-text { font-weight: var(--fw-medium); }
+.rankings__tier { flex: none; }
+.rankings__delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+}
+.rankings__delta--up { color: var(--win); }
+.rankings__delta--down { color: var(--loss); }
+.rankings__delta--flat { color: var(--faint); }
+.rankings__delta-num { color: inherit; }
+
+/* ---- Ranked Ladder ---- */
+.ladder { width: 100%; }
+.ladder__filters { display: flex; flex-direction: column; gap: var(--sp-2); margin-top: var(--sp-3); }
+.ladder__filter-group { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.ladder__filter-label {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-hud);
+  color: var(--muted);
+  min-width: 56px;
+}
+.ladder__filter-group .cp__filters { margin: 0; }
+.ladder__handle { font-weight: var(--fw-medium); }
+.ladder__rating { font-family: var(--font-mono); font-weight: var(--fw-bold); color: var(--accent); }
+
+.ladder__pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+.ladder__page-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+}
+.ladder__page-btn:hover:not([disabled]) { background: var(--panel-3); border-color: var(--accent-line); }
+.ladder__page-btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.ladder__page-btn[disabled] { opacity: 0.4; cursor: default; }
+.ladder__page-icon--prev { transform: rotate(-90deg); }
+.ladder__page-icon--next { transform: rotate(-90deg); }
+.ladder__range {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.ladder__range-window { font-family: var(--font-mono); color: var(--text); font-weight: var(--fw-medium); }
+.ladder__range-total { font-family: var(--font-mono); color: var(--text); font-weight: var(--fw-semibold); }
+
+/* ---- Player screen: rank-tier meta item ---- */
+.player__meta-rank { display: inline-flex; flex-direction: column; gap: 2px; }
+
+/* ---- Roster: inline rank-tier badge beside the player name ---- */
+.squad__rank { margin-left: var(--sp-2); vertical-align: middle; }

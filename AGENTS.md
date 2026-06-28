@@ -270,3 +270,32 @@ This file is the project's committed home for project-intrinsic agent knowledge:
   with a glowing active marker; panel/card/table titles use the mono HUD voice; the TopBar carries a
   "LIVE" on-air chip. Keyboard focus still uses `box-shadow: var(--ring)` on `:focus-visible`.
 - New icons go in `components/Icon.js` (e.g. `cross` = injury marker). Icons, never emoji.
+
+## Competitive core — Global Rankings, Ranked Ladder, rank-tier badges (`ui/rank*`)
+
+- **Two consumer-side modules sit IN FRONT of the engine's ranking selectors.** The engine half
+  owns the canonical `selectGlobalRankings(state,{scope})`, `selectLadder(state,{tier,region,offset,limit})`
+  (PAGED → `{total,rows}`) and `playerRankTier(player)` → `{tier,rr?}` in `state/selectors.js`. The UI
+  consumes them ONLY through `src/ui/rankSelectors.js`, a thin adapter that reads each selector off the
+  `selectors.js` namespace at call time: if present, delegate; else fall back to the pure derivations in
+  `src/ui/rankDerive.js` (rebuilt from team Elo + the player tables + `world.tier2`) and the local tier
+  fallback in `src/ui/rankTier.js`. This makes the screens build/render before the engine selectors land
+  AND wire to real data with zero code change once they do. If you add a ranking consumer, import from
+  `rankSelectors.js`, never from `selectors.js` directly.
+- **`ui/rankTier.js` is the pure tier ladder + view normaliser** (Iron→Bronze→…→Radiant, 9 keys).
+  `tierMeta(token)` maps any tier token (key OR label, any case) to `{key,label,index}`, degrading to a
+  neutral `unranked` descriptor — used to pick the `.rank-badge--<key>` BEM modifier. `tierFromOverall`/
+  `playerRankTier` are the fallbacks only (the `min` thresholds are calibrated to the seed-world overall
+  bands, NOT authoritative — the engine owns real tiers).
+- **`components/RankBadge.js`** is the one reusable badge: Icon-based (`Icon('rank')` faceted gem) +
+  token-styled, NO emoji. Pass `{player}` (resolves tier via the adapter) OR an explicit `{tier, rr}`
+  (for attribute-less rows like a global-ranking player row, derive the tier from rating via
+  `tierFromOverall`). It is surfaced on the Player header (`player__meta-rank`), the roster
+  (`Squad.js`, `squad__rank`), and both new screens. Tier colours are `--rank-*` tokens in `theme.css`.
+- **`screens/GlobalRankings.js` (id `globalrankings`)** — teams|players leaderboard; scope toggle +
+  active filter live in route params (pure). Shows rank, climb/fall `deltaRank` (up/down chevron via
+  `arrow-up`/`arrow-down` icons), rating, and a rank badge in players scope.
+- **`screens/Ladder.js` (id `ladder`)** — the big ranked ladder. ALWAYS paged via `selectLadder`'s
+  offset/limit; `PAGE_SIZE=50` is the hard cap on rendered rows (machine is memory-bound — never render
+  the whole ladder). Tier + region filters + a Prev/Next pager, all in route params. Both screens are
+  additive `ROUTES`/`NAV_ITEMS` entries (section `world`); icons `podium`/`ladder` added to `Icon.js`.

@@ -11,6 +11,7 @@
 import { h, classNames } from '../render.js';
 import { navigate } from '../../state/actions.js';
 import { Icon } from '../components/Icon.js';
+import { RankBadge } from '../components/RankBadge.js';
 import {
   selectFollowedTeam,
   selectRoster,
@@ -103,6 +104,7 @@ function playerRow(p, go) {
         { type: 'button', class: 'link squad__name', onClick: () => go('player', { playerId: p.id }) },
         p.handle || p.name
       ),
+      RankBadge({ player: p, showLabel: false, class: 'squad__rank' }),
       injury
         ? h(
             'span',

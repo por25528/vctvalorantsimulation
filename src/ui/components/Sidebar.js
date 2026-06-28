@@ -39,6 +39,8 @@ export const NAV_ITEMS = [
   { screen: 'leaders', label: 'Leaders', icon: 'star', glyph: '★', section: 'competition' },
   { screen: 'tier2', label: 'Challengers', icon: 'standings', glyph: '≡', section: 'competition' },
   { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍', section: 'world' },
+  { screen: 'globalrankings', label: 'Global Rankings', icon: 'podium', glyph: '▲', section: 'world' },
+  { screen: 'ladder', label: 'Ranked Ladder', icon: 'ladder', glyph: '≣', section: 'world' },
   { screen: 'stats', label: 'Stats', icon: 'chart', glyph: '▥', section: 'world' },
   { screen: 'scouting', label: 'Scouting', icon: 'binoculars', glyph: '⊙', section: 'world' },
   { screen: 'squad', label: 'Roster', icon: 'squad', glyph: '⛶', section: 'world' },

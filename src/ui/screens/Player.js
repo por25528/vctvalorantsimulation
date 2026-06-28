@@ -19,6 +19,7 @@ import { h, classNames } from '../render.js';
 import { navigate } from '../../state/actions.js';
 import { AttributeRadar, RADAR_AXES } from '../components/AttributeRadar.js';
 import { DataTable } from '../components/DataTable.js';
+import { RankBadge } from '../components/RankBadge.js';
 import { MAPS } from '../../config/maps.js';
 import {
   selectRoute,
@@ -155,6 +156,12 @@ function playerHeader(player, team, dispatch, agg) {
             h('span', { class: classNames('player__meta-value', ratingClass(agg.rating)) }, agg.rating.toFixed(2))
           )
         : null,
+      h(
+        'span',
+        { class: 'player__meta-item player__meta-rank' },
+        h('span', { class: 'player__meta-label' }, 'Rank'),
+        RankBadge({ player, showRr: true })
+      ),
       metaItem('Role', player.role || '—'),
       metaItem('Age', player.age != null ? String(player.age) : '—'),
       metaItem('Nation', player.nationality || '—'),

@@ -78,7 +78,17 @@ const SHAPES = {
   // finance / wallet (Finances screen)
   finance: () => [path('M12 4v16'), path('M16 8.5H10a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8')],
   // medical cross (injury marker)
-  cross: () => [h('path', { d: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z', fill: 'currentColor', stroke: 'none' })]
+  cross: () => [h('path', { d: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z', fill: 'currentColor', stroke: 'none' })],
+  // faceted rank gem (rank-tier badge emblem) — a Valorant-style diamond crest
+  rank: () => [path('M12 3.5 20 9l-8 11.5L4 9z'), path('M4 9h16'), path('M9 9l3 11.5L15 9'), path('M12 3.5 9 9'), path('M12 3.5 15 9')],
+  // up chevron (climbing the ranking)
+  'arrow-up': () => [path('M6 14l6-6 6 6')],
+  // down chevron (falling)
+  'arrow-down': () => [path('M6 10l6 6 6-6')],
+  // podium / leaderboard (global rankings)
+  podium: () => [h('rect', rect(9.5, 6, 5, 13, null, 1)), h('rect', rect(3.5, 11, 5, 8, null, 1)), h('rect', rect(15.5, 9, 5, 10, null, 1)), path('M12 3.5l.9 1.8 2 .3-1.45 1.4.35 2L12 9l-1.8 1 .35-2L9.1 6.6l2-.3z')],
+  // stacked rungs (the ranked ladder)
+  ladder: () => [path('M7 3v18'), path('M17 3v18'), path('M7 7h10'), path('M7 12h10'), path('M7 17h10')]
 };
 
 /** Build a stroked `<path>` child (the icon default style). */
