@@ -78,7 +78,9 @@ const SHAPES = {
   // finance / wallet (Finances screen)
   finance: () => [path('M12 4v16'), path('M16 8.5H10a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8')],
   // medical cross (injury marker)
-  cross: () => [h('path', { d: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z', fill: 'currentColor', stroke: 'none' })]
+  cross: () => [h('path', { d: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z', fill: 'currentColor', stroke: 'none' })],
+  // crown (all-time legends marker)
+  crown: () => [path('M4 8l3.5 3L12 6l4.5 5L20 8l-1.5 10h-13z'), path('M5.5 18h13')]
 };
 
 /** Build a stroked `<path>` child (the icon default style). */

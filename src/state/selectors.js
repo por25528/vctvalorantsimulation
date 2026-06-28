@@ -119,6 +119,30 @@ export const selectCareerHistory = (state) => (state.career && state.career.hist
 /** The most recent OffseasonReport, or null. */
 export const selectOffseasonReport = (state) => (state.career && state.career.offseason) || null;
 
+/* ------------------------- player career legacy ------------------------- */
+
+/**
+ * The persistent player-legacy ledger (Wave 2 E). Always returns a usable shape
+ * — legacy saves without it degrade to an empty `{ players, seasonsBanked }`.
+ * @param {object} state
+ * @returns {{players:Record<string,object>, seasonsBanked:number}}
+ */
+export const selectPlayerLegacy = (state) => {
+  const pl = state.career && state.career.playerLegacy;
+  return pl && pl.players ? pl : { players: {}, seasonsBanked: 0 };
+};
+
+/**
+ * A single player's banked career record, or null if they have no banked history
+ * yet (e.g. an active player whose first season has not completed).
+ * @param {object} state @param {string} playerId
+ * @returns {object|null}
+ */
+export const selectPlayerCareer = (state, playerId) => {
+  if (!playerId) return null;
+  return selectPlayerLegacy(state).players[playerId] || null;
+};
+
 /**
  * Aggregate the most-recent off-season's transfer activity into a league-wide
  * Transfer Window board (the spectator view): headline buys (by fee) and free-agent

@@ -2971,3 +2971,115 @@ button {
 .stats__tier-stat { display: flex; justify-content: space-between; align-items: baseline; padding: 2px 0; }
 .stats__tier-stat-label { font-size: var(--fs-sm); color: var(--muted); }
 .stats__tier-stat-value { font-size: var(--fs-md); font-weight: var(--fw-medium); font-family: var(--font-mono); }
+
+/* ============================================================= */
+/* Player Career legacy — Life Story (.legacy) + All-Time (.alltime) */
+/* (Wave 2 E). Token-driven; no hardcoded colours.               */
+/* ============================================================= */
+
+/* ---- Life Story / Career ---- */
+.legacy__head { align-items: flex-start; gap: var(--sp-4); flex-wrap: wrap; }
+.legacy__head-id { display: flex; flex-direction: column; gap: var(--sp-1); }
+.legacy__head-links { margin-left: auto; display: flex; flex-direction: column; gap: var(--sp-1); align-items: flex-end; }
+.legacy__era {
+  align-self: flex-start;
+  margin-top: var(--sp-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-hud, 0.12em);
+  padding: 2px var(--sp-2);
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--panel-3);
+  color: var(--muted);
+}
+.legacy__era--legend { color: var(--cp); border-color: var(--cp-soft); background: var(--cp-soft); }
+.legacy__era--star { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.legacy__era--pro { color: var(--win); border-color: var(--win-soft); background: var(--win-soft); }
+.legacy__era--veteran { color: var(--warn); border-color: var(--warn-soft); background: var(--warn-soft); }
+
+.legacy__empty { margin-top: var(--sp-5); }
+.legacy__body { display: grid; gap: var(--sp-5); margin-top: var(--sp-4); }
+.legacy__card { margin: 0; }
+
+.legacy__cabinet { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--sp-3); }
+.legacy__trophy {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2);
+}
+.legacy__trophy-icon { color: var(--cp); }
+.legacy__trophy-n { font-family: var(--font-mono); font-size: var(--fs-xl); font-weight: var(--fw-bold); color: var(--text); }
+.legacy__trophy-label { font-size: var(--fs-xs); color: var(--muted); text-align: center; }
+
+.legacy__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-3); }
+.legacy__stat { display: flex; flex-direction: column; gap: 2px; }
+.legacy__stat-value { font-family: var(--font-mono); font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--text); }
+.legacy__stat-label { font-size: var(--fs-xs); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+.legacy__arc { list-style: none; display: flex; flex-direction: column; gap: var(--sp-3); padding: 0; margin: 0; }
+.legacy__phase {
+  padding: var(--sp-3);
+  border-left: 3px solid var(--border);
+  background: var(--panel-2);
+  border-radius: 0 var(--r-2) var(--r-2) 0;
+}
+.legacy__phase--rise { border-left-color: var(--win); }
+.legacy__phase--peak { border-left-color: var(--cp); }
+.legacy__phase--decline { border-left-color: var(--loss); }
+.legacy__phase-label { font-weight: var(--fw-semibold); margin-right: var(--sp-2); }
+.legacy__phase-span { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--faint); }
+.legacy__phase-text { margin-top: var(--sp-1); color: var(--muted); font-size: var(--fs-sm); }
+
+.legacy__milestones { list-style: none; display: flex; flex-direction: column; gap: var(--sp-1); padding: 0; margin: 0; }
+.legacy__milestone { display: flex; align-items: baseline; gap: var(--sp-2); padding: 2px 0; }
+.legacy__milestone-season { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--accent); min-width: 32px; }
+.legacy__milestone-label { color: var(--text); font-size: var(--fs-sm); }
+.legacy__milestone--title .legacy__milestone-label,
+.legacy__milestone--mvp .legacy__milestone-label,
+.legacy__milestone--streak .legacy__milestone-label { color: var(--cp); font-weight: var(--fw-medium); }
+
+.legacy__honors { display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.legacy__honor {
+  font-family: var(--font-mono); font-size: var(--fs-xs);
+  padding: 1px 6px; border-radius: var(--r-1);
+  background: var(--mvp-soft); color: var(--cp); border: 1px solid var(--cp-soft);
+}
+
+/* ---- All-Time Players ---- */
+.alltime__hero { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.alltime__hero-card {
+  display: flex; align-items: center; gap: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-3);
+  cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.alltime__hero-card:hover { border-color: var(--accent-line); }
+.alltime__hero-icon { color: var(--cp); display: inline-flex; }
+.alltime__hero-body { display: flex; flex-direction: column; gap: 1px; }
+.alltime__hero-kicker { font-family: var(--font-mono); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.alltime__hero-name { font-size: var(--fs-md); font-weight: var(--fw-semibold); color: var(--text); }
+.alltime__hero-value { font-size: var(--fs-xs); color: var(--faint); }
+
+.alltime__tabs { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-bottom: var(--sp-4); }
+.alltime__tab {
+  font: inherit; font-size: var(--fs-sm);
+  padding: var(--sp-1) var(--sp-3);
+  background: var(--panel-2); color: var(--muted);
+  border: 1px solid var(--border); border-radius: var(--r-pill);
+  cursor: pointer;
+}
+.alltime__tab:hover { color: var(--text); border-color: var(--accent-line); }
+.alltime__tab--active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+
+.alltime__empty { margin-top: var(--sp-5); }
+.alltime__player { display: flex; align-items: baseline; gap: var(--sp-2); }
+.alltime__player-name { font-weight: var(--fw-medium); color: var(--text); }
+.alltime__player-role { font-size: var(--fs-xs); color: var(--faint); }
+.alltime__value { font-family: var(--font-mono); font-weight: var(--fw-semibold); color: var(--text); }

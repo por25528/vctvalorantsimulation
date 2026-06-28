@@ -37,6 +37,7 @@ export const NAV_ITEMS = [
   { screen: 'champions', label: 'Champions', icon: 'trophy', glyph: '♚', section: 'competition' },
   { screen: 'awards', label: 'Awards', icon: 'medal', glyph: '✦', section: 'competition' },
   { screen: 'leaders', label: 'Leaders', icon: 'star', glyph: '★', section: 'competition' },
+  { screen: 'legends', label: 'All-Time', icon: 'crown', glyph: '♛', section: 'competition' },
   { screen: 'tier2', label: 'Challengers', icon: 'standings', glyph: '≡', section: 'competition' },
   { screen: 'rankings', label: 'World Ranking', icon: 'globe', glyph: '◍', section: 'world' },
   { screen: 'stats', label: 'Stats', icon: 'chart', glyph: '▥', section: 'world' },
@@ -70,7 +71,9 @@ const NAV_PARENT = {
   development: 'squad',
   match: 'tournament',
   standings: 'tournament',
-  bracket: 'tournament'
+  bracket: 'tournament',
+  // A player's Life Story belongs under the All-Time leaders highlight.
+  career: 'legends'
 };
 
 /**
