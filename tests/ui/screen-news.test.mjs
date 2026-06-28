@@ -26,7 +26,7 @@ export default async function run() {
   section('News — empty before play');
   assert(selectInbox(store.getState()).length === 0, 'fresh career has an empty inbox');
   let html = toHtml(News(store.getState(), store.dispatch));
-  assert(html.includes('screen--news') && html.includes('No news yet'), 'news screen empty-state renders');
+  assert(html.includes('screen--news') && html.includes('The world is quiet'), 'world feed empty-state renders');
 
   section('News — accumulates as slots are played');
   continueSeason(store, { simEvent: true }); // Kickoff slot (4 regional events)

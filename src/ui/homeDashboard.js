@@ -21,7 +21,6 @@ import {
   selectTeamRatings,
   selectPlayedEvents,
   selectPlacements,
-  selectRecentNews,
   selectSeasonAwards,
   selectReveal,
   selectCurrentMatchDay,
@@ -29,6 +28,7 @@ import {
   selectTransferWindow
 } from '../state/selectors.js';
 import { overall } from '../engine/career/playerStats.js';
+import { happeningsFeed } from './worldFeed.js';
 import { SLOT_LABELS, REGION_LABELS, REGION_ORDER } from './eventFormats.js';
 
 /** Human label for a calendar slot id (falls back to the id). */
@@ -310,32 +310,37 @@ export function peopleToWatch(state, limit = 6) {
 /* ------------------------------------------------------------------ */
 
 /**
- * The latest-happenings feed: recent inbox headlines (results, milestones,
- * off-season moves) topped with the headline transfer of the most recent window
- * when one exists. Newest first, capped at `limit`.
+ * The latest-happenings feed for the God-View hub: the freshest, most dramatic
+ * items from the World Feed — the cross-season storylines (dynasties, rivalries,
+ * breakouts, upsets) blended with the live inbox news, newest-first. Each item
+ * carries an icon, a context blurb and an era tag, and the ids to click through.
+ * Falls back to the most recent window's marquee signing so the panel still tells
+ * a story when the world is otherwise quiet.
  *
  * @param {object} state
- * @param {number} [limit=8]
- * @returns {Array<{id:string, headline:string, tone:string}>}
+ * @param {number} [limit=7]
+ * @returns {Array<{id:string, icon:string, headline:string, blurb:string,
+ *   era:string, tone:string, category:string, teamId:string|null, playerId:string|null}>}
  */
-export function latestHappenings(state, limit = 8) {
-  const out = [];
-  const news = selectRecentNews(state, limit) || [];
-  for (const it of news) {
-    out.push({ id: it.id, headline: it.headline, tone: it.tone || 'info' });
-  }
+export function latestHappenings(state, limit = 7) {
+  const out = happeningsFeed(state, limit);
 
-  // If the feed is light (e.g. spectating with no followed team → few result
-  // items), fold in the most recent window's marquee signing so the panel still
-  // tells a story.
+  // If the feed is light (e.g. a fresh world with no history yet), fold in the
+  // most recent window's marquee signing so the panel still tells a story.
   if (out.length < limit) {
     const window = selectTransferWindow(state);
     if (window && window.biggest) {
       const d = window.biggest;
       out.push({
         id: `transfer-${window.season}-${d.player}`,
+        icon: 'swap',
         headline: `${d.player} joins ${d.to} for $${Math.round((d.fee || 0) / 1000)}k`,
-        tone: 'headline'
+        blurb: '',
+        era: `S${(window.season || 0) + 1} · Off-season`,
+        tone: 'headline',
+        category: 'transfer',
+        teamId: d.toId || null,
+        playerId: null
       });
     }
   }

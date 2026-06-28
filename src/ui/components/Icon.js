@@ -79,10 +79,18 @@ const SHAPES = {
   finance: () => [path('M12 4v16'), path('M16 8.5H10a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8')],
   // medical cross (injury marker)
   cross: () => [h('path', { d: 'M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z', fill: 'currentColor', stroke: 'none' })],
-  // crown (all-time legends marker)
+  // crown (all-time legends marker / dynasty)
   crown: () => [path('M4 8l3.5 3L12 6l4.5 5L20 8l-1.5 10h-13z'), path('M5.5 18h13')],
   // hall / institution (pillared building — Hall of Fame)
-  hall: () => [path('M3.5 9 12 4l8.5 5'), path('M4 9.5h16'), path('M6 10v8'), path('M12 10v8'), path('M18 10v8'), path('M3.5 20h17')]
+  hall: () => [path('M3.5 9 12 4l8.5 5'), path('M4 9.5h16'), path('M6 10v8'), path('M12 10v8'), path('M18 10v8'), path('M3.5 20h17')],
+  // crossed swords (rivalry)
+  swords: () => [path('M14.5 4.5 20 4l-.5 5.5'), path('M4 20 15 9'), path('M9.5 4.5 4 4l.5 5.5'), path('M20 20 9 9')],
+  // flame (breakout / rising / newgen)
+  flame: () => [h('path', { d: 'M12 3c2.5 3.5 4.5 5.5 4.5 8.5a4.5 4.5 0 0 1-9 0c0-1.6.6-2.7 1.7-3.8.8 1.2 1.6 1.6 2.8.8C12.5 7.5 12 5.2 12 3z' })],
+  // lightning bolt (upset / shock)
+  bolt: () => [h('path', { d: 'M13 3 5 13h6l-2 8 8-10h-6z', fill: 'currentColor', stroke: 'none' })],
+  // downward trend (decline / fallen giants)
+  decline: () => [path('M4 7l5 5 4-4 7 7'), path('M20 11v4h-4')]
 };
 
 /** Build a stroked `<path>` child (the icon default style). */
